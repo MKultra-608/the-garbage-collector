@@ -15,7 +15,8 @@
     "build:demo": "node scripts/make-demo.cjs",
     "app:renderer": "node scripts/build-renderer.cjs",
     "start": "npm run app:renderer && electron .",
-    "dist": "node scripts/make-icon.cjs && npm run app:renderer && electron-builder --win nsis",
+    "dist": "node scripts/make-icon.cjs && npm run app:renderer && electron-builder --dir && node scripts/make-installer.cjs",
+    "installer": "node scripts/make-installer.cjs",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-transform-types tests/interp.test.ts && node --experimental-transform-types tests/content.test.ts && node --experimental-transform-types tests/solutions.test.ts"
   },
