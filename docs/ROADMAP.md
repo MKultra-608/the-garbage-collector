@@ -9,14 +9,23 @@ travel; two scripted bosses with taught weaknesses; the escalating-hint /
 worked-solution tutor. `npm test` (interpreter + content + solution/progression
 suites) and `npm run build` are clean.
 
-### Public demo (Floors 0–1)
-`npm run build:demo` → `the-garbage-collector-demo.html`, one self-contained
-file (base64 data-URI module, no external refs) that runs by double-click. The
-cap is a build flag: `GC_DEMO=1` sets `__DEMO_MAX_FLOOR__` (vite.config.ts), and
-`data/maps.ts` filters `FLOORS` to it — Floor 2+ content stays in the bundle but
-is unreachable, so the demo ends after the mailroom with an END OF DEMO beat. A
-framed, hosted version (CRT-bezel chrome via scripts under scratchpad) is
-published as a Claude Artifact for sharing.
+### Public demo (Floors 0–1) — published
+Repo: https://github.com/MKultra-608/the-garbage-collector — Release `v0.1.0`
+ships a **Windows installer** (`TheGarbageCollector-Demo-Setup-*.exe`) and the
+single-file browser build (`the-garbage-collector-demo.html`).
+
+- **Desktop app** (not browser-only): Electron shell (`electron/main.cjs`).
+  `npm run start` runs it; `npm run dist` builds the app dir via electron-builder
+  `--dir` then compiles the installer with NSIS directly
+  (`scripts/make-installer.cjs`). We bypass electron-builder's own NSIS step
+  because its winCodeSign cache holds macOS symlinks that Windows won't extract
+  without Developer Mode/admin — makensis needs none of that. Per-user install,
+  Start Menu + desktop shortcuts, uninstaller; unsigned (SmartScreen warns).
+- **Demo cap**: `GC_DEMO=1` sets `__DEMO_MAX_FLOOR__` (vite.config.ts) and
+  `data/maps.ts` filters `FLOORS`; Floor 2+ stays in the bundle but is
+  unreachable, ending after the mailroom with an END OF DEMO beat.
+- **Icon**: `scripts/make-icon.cjs` hand-encodes a PNG-in-ICO (no image libs).
+- A framed, hosted browser version is also a Claude Artifact for quick sharing.
 
 ### Floor 2 — The Archives (loops) — DONE (v0.4)
 - [x] `floor2` MapDef: repeating cabinet aisles + archive-box tiles, a reading
