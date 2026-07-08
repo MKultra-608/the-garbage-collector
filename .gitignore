@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-demo/
+release/
+*.local
+
+# generated demo deliverables (published on GitHub Releases, not committed)
+the-garbage-collector-demo.html
+demo-artifact.html
