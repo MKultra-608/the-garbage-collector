@@ -39,7 +39,8 @@ There is a preview launch config named `garbage-collector` in
    a comment justifying them.
 6. **Keyboard only.** Arrows/WASD move, Z/Space confirms, X/Esc cancels, Enter
    opens the pause menu. The code editor is modal and grabs raw keys
-   (Ctrl+Enter runs; F1 opens escalating hints).
+   (Ctrl+Enter runs; F1 opens escalating hints + the GLOSSARY page —
+   left/right flips pages, up/down scrolls terms).
 7. **Nobody gets stuck.** Every challenge ships escalating `hints` and a tested
    `solution` (see `tests/solutions.test.ts`). Frustration is a bigger threat to
    an education game than hand-holding — always give a graceful way forward.
@@ -119,13 +120,16 @@ by challenges — that is the core loop.
 
 **Add a challenge**: entry in `challenges.ts` (set its `floor`). Teach in
 `brief` first, then task. Provide `teaches` (concept label), 2-3 escalating
-`hints` (concept nudge → syntax → near-complete line), and a full worked
-`solution`. Grade with `expect` (run cases) and `variants` (source
-substitutions that prove no hardcoding; matching is whitespace-tolerant). If it
-needs a language feature the interpreter lacks, extend `interp.ts` and add
-tests to `tests/interp.test.ts` FIRST. `tests/solutions.test.ts` fails unless
-every challenge has hints + a solution, the solution passes, and the starter
-does NOT — so authoring is self-checking.
+`hints` (concept nudge → syntax → near-complete line), a full worked
+`solution`, and `terms` — glossary keys (`data/glossary.ts`) for every word/
+command the challenge uses; each glossary entry defines the term AND why it is
+named that (no magic words). Grade with `expect` (run cases) and `variants`
+(source substitutions that prove no hardcoding; matching is
+whitespace-tolerant). If it needs a language feature the interpreter lacks,
+extend `interp.ts` and add tests to `tests/interp.test.ts` FIRST.
+`tests/solutions.test.ts` fails unless every challenge has hints + terms + a
+solution, the solution passes, and the starter does NOT — so authoring is
+self-checking.
 
 **The in-editor tutor**: `EditorScene` has `help`/`solution` modes. F1 reveals
 hints one at a time; after the last hint the player can view the worked
@@ -160,6 +164,9 @@ localStorage.removeItem('gc-save-v1')   // fresh start
 10. Floor 1: solve the four mailroom terminals; confront MISLABEL (no FLEE);
     Scan reveals its weakness; Switch Case hits multiple times and is super
     effective; defeating it + all terminals fires the floor-clear beat.
+11. Floor 3: the terminal lists FIVE challenges (Labs 6-11); DELEGATE grants
+    Subroutine; STACK OVERFLOW is weak to it. F1's GLOSSARY page defines every
+    term used. Each floor's room tone is audibly different (audio.ts recipes).
 
 Fast path for driving via the console: see the __gc debug API above — set
 `__gc.state` flags/`unlockedFloors`, write it to `localStorage['gc-save-v1']`,
