@@ -31,6 +31,12 @@ export interface Challenge {
    * tests/solutions.test.ts — so what the player sees is guaranteed to pass.
    */
   solution: string
+  /**
+   * Glossary keys (data/glossary.ts) for every word/command this challenge
+   * uses — each defines the term and why it is named that. Rendered on the
+   * GLOSSARY page of the F1 help overlay.
+   */
+  terms: string[]
   expect?: { label?: string; stdin?: string; output: string }[]
   /** Re-runs the program with a source substitution — proves the code reacts to data, not hardcoding. */
   variants?: { label: string; replace: [string, string]; stdin?: string; output: string }[]
@@ -73,6 +79,7 @@ export const CHALLENGES: Challenge[] = [
         hint: 'drop to the next line with << endl (or a \\n inside the quotes)',
       },
     ],
+    terms: ['include', 'usingstd', 'main', 'cout', 'insertion', 'endl', 'quotes', 'semicolon', 'ret0'],
     reward: { ability: 'flush', scrap: 5 },
     doneFlag: 'done-ch0-hello',
   },
@@ -117,6 +124,7 @@ export const CHALLENGES: Challenge[] = [
         hint: 'multiply the variables — do not type 125 yourself',
       },
     ],
+    terms: ['varword', 'int', 'assignop', 'const', 'arith', 'semicolon'],
     reward: { ability: 'increment', scrap: 5 },
     doneFlag: 'done-ch0-vars',
   },
@@ -154,6 +162,7 @@ export const CHALLENGES: Challenge[] = [
         hint: 'the leftover is the remainder: bags % cart',
       },
     ],
+    terms: ['arith', 'modulo', 'int', 'insertion', 'endl'],
     reward: { ramBonus: 2, scrap: 5 },
     doneFlag: 'done-ch0-ops',
   },
@@ -189,6 +198,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'uses ||', pattern: /\|\|/, hint: 'either-may-hold checks use ||' },
       { label: 'uses !', pattern: /!\s*\(/, hint: 'flip the third check with !( ... )' },
     ],
+    terms: ['bool', 'compare', 'and', 'or', 'not'],
     reward: { ability: 'guard', scrap: 10 },
     doneFlag: 'done-ch0-logic',
   },
@@ -221,6 +231,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'reads with cin', pattern: /cin\s*>>/, hint: 'keep the line: cin >> count;' },
       { label: 'prints with cout', pattern: /cout\s*<</, hint: 'print with: cout << "PARCELS: " << count;' },
     ],
+    terms: ['cin', 'extraction', 'varword', 'cout', 'insertion'],
     reward: { ramBonus: 2, scrap: 8 },
     doneFlag: 'done-ch1-cin',
   },
@@ -253,6 +264,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'chains with else if', pattern: /else\s+if/, hint: 'link the rungs: } else if (t <= 15) {' },
       { label: 'uses an if', pattern: /if\s*\(/, hint: 'start the ladder with if (t <= 0)' },
     ],
+    terms: ['ifelse', 'elseif', 'compare', 'cin', 'extraction'],
     reward: { ramBonus: 2, scrap: 10 },
     doneFlag: 'done-ch1-ladder',
   },
@@ -286,6 +298,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'has a default', pattern: /default\s*:/, hint: 'catch the rest with default:' },
       { label: 'breaks each case', pattern: /break\s*;/, hint: 'end each case with break; or it falls through' },
     ],
+    terms: ['switch', 'case', 'break', 'default', 'cin'],
     reward: { ability: 'switchcase', scrap: 12 },
     doneFlag: 'done-ch1-switch',
   },
@@ -320,6 +333,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'matches char cases', pattern: /case\s*'/, hint: "match symbols in single quotes: case '+':" },
       { label: 'reads the input', pattern: /cin\s*>>/, hint: 'keep: cin >> op >> a >> b;' },
     ],
+    terms: ['char', 'switch', 'case', 'default', 'cin', 'extraction', 'arith'],
     reward: { ramBonus: 3, scrap: 18 },
     doneFlag: 'done-ch1-calc',
   },
@@ -352,6 +366,7 @@ export const CHALLENGES: Challenge[] = [
     ],
     solution:
       '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    while (n > 0) {\n        cout << n << " ";\n        n--;\n    }\n    return 0;\n}\n',
+    terms: ['whileloop', 'compare', 'increment', 'cin'],
     reward: { ramBonus: 2, scrap: 10 },
     doneFlag: 'done-ch2-while',
   },
@@ -380,6 +395,7 @@ export const CHALLENGES: Challenge[] = [
     ],
     solution:
       '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    for (int i = 1; i <= n; i++) {\n        cout << i << " ";\n    }\n    return 0;\n}\n',
+    terms: ['forloop', 'increment', 'compare', 'cin'],
     reward: { ability: 'looplash', scrap: 12 },
     doneFlag: 'done-ch2-for',
   },
@@ -411,6 +427,7 @@ export const CHALLENGES: Challenge[] = [
     ],
     solution:
       '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    int sum = 0;\n    for (int i = 1; i <= n; i++) {\n        sum += i;\n    }\n    cout << sum;\n    return 0;\n}\n',
+    terms: ['compound', 'forloop', 'varword', 'int'],
     reward: { ramBonus: 2, scrap: 12 },
     doneFlag: 'done-ch2-accum',
   },
@@ -441,8 +458,168 @@ export const CHALLENGES: Challenge[] = [
     ],
     solution:
       '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    for (int r = 0; r < n; r++) {\n        for (int c = 0; c < n; c++) {\n            cout << "#";\n        }\n        cout << endl;\n    }\n    return 0;\n}\n',
+    terms: ['forloop', 'endl', 'increment'],
     reward: { ramBonus: 3, scrap: 20 },
     doneFlag: 'done-ch2-nested',
+  },
+
+  // ------------------------------------------------------------- Floor 3
+  {
+    id: 'ch3-array',
+    title: 'BIN ROW',
+    floor: 3,
+    teaches: 'arrays — a row of boxes',
+    brief: [
+      'An ARRAY is a row of same-type boxes under one name: int bins[4]; makes four ints side by side. bins[i] is box number i — and counting starts at 0, so the first box is bins[0] and the last is bins[3].',
+      'Loops and arrays are partners: the loop counter is the index.',
+      'TASK: Read 4 ints into an array, then print them in REVERSE order, each followed by a space. For 3 9 4 7 print:  7 4 9 3',
+    ],
+    starter:
+      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bins[4];\n    // loop 0..3: cin >> bins[i]\n    // loop 3..0: print bins[i] and a space\n\n    return 0;\n}\n',
+    hints: [
+      'One loop fills the array front to back; a second loop reads it back to front.',
+      'Fill it:  for (int i = 0; i < 4; i++) { cin >> bins[i]; }',
+      'Reverse is a countdown:  for (int i = 3; i >= 0; i--) { cout << bins[i] << " "; }',
+    ],
+    solution:
+      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bins[4];\n    for (int i = 0; i < 4; i++) {\n        cin >> bins[i];\n    }\n    for (int i = 3; i >= 0; i--) {\n        cout << bins[i] << " ";\n    }\n    return 0;\n}\n',
+    expect: [
+      { label: '3 9 4 7 reversed', stdin: '3 9 4 7', output: '7 4 9 3' },
+      { label: '1 2 3 4 reversed', stdin: '1 2 3 4', output: '4 3 2 1' },
+    ],
+    require: [
+      { label: 'uses the array', pattern: /bins\s*\[/, hint: 'store into the boxes: bins[i]' },
+      { label: 'uses a loop', pattern: /for\s*\(|while\s*\(/, hint: 'walk the indexes with a loop' },
+    ],
+    terms: ['array', 'index', 'forloop', 'cin', 'extraction'],
+    reward: { ramBonus: 2, scrap: 14 },
+    doneFlag: 'done-ch3-array',
+  },
+  {
+    id: 'ch3-grid',
+    title: 'FLOOR PLAN',
+    floor: 3,
+    teaches: '2D arrays — grids',
+    brief: [
+      'An array can hold arrays: int m[2][3]; is a GRID — 2 rows of 3 columns. m[r][c] picks row r, then column c, like a seat number.',
+      'Nested loops walk a grid: the outer loop picks the row, the inner loop walks its columns.',
+      'TASK: Read a 2x3 grid of ints (row by row), then print the LARGEST value in the grid. For 4 9 1 / 7 2 8 that is 9.',
+    ],
+    starter:
+      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int m[2][3];\n    // nested loops: cin >> m[r][c]\n    // start big = m[0][0]; scan for bigger\n\n    return 0;\n}\n',
+    hints: [
+      'Fill the grid with nested loops, then scan it the same way, keeping the biggest seen so far.',
+      'Start the record holder at the first cell:  int big = m[0][0];',
+      'In the scan:  if (m[r][c] > big) { big = m[r][c]; }',
+    ],
+    solution:
+      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int m[2][3];\n    for (int r = 0; r < 2; r++) {\n        for (int c = 0; c < 3; c++) {\n            cin >> m[r][c];\n        }\n    }\n    int big = m[0][0];\n    for (int r = 0; r < 2; r++) {\n        for (int c = 0; c < 3; c++) {\n            if (m[r][c] > big) {\n                big = m[r][c];\n            }\n        }\n    }\n    cout << big;\n    return 0;\n}\n',
+    expect: [
+      { label: 'largest of 4 9 1 7 2 8 is 9', stdin: '4 9 1 7 2 8', output: '9' },
+      { label: 'largest of 1 2 3 4 5 6 is 6', stdin: '1 2 3 4 5 6', output: '6' },
+      { label: 'works when all are negative', stdin: '-5 -2 -9 -7 -1 -3', output: '-1' },
+    ],
+    require: [
+      { label: 'indexes two dimensions', pattern: /\]\s*\[/, hint: 'a grid cell needs both indexes: m[r][c]' },
+      { label: 'nests two loops', pattern: /for[\s\S]*for/, hint: 'outer loop for rows, inner loop for columns' },
+    ],
+    terms: ['twod', 'array', 'index', 'forloop', 'ifelse'],
+    reward: { ramBonus: 2, scrap: 16 },
+    doneFlag: 'done-ch3-grid',
+  },
+  {
+    id: 'ch3-func',
+    title: 'DELEGATE',
+    floor: 3,
+    teaches: 'functions — define & call',
+    brief: [
+      'A FUNCTION is a named block that does one job, from math\'s f(x). Define it once above main; CALL it by name as often as you like. Its parameters receive COPIES of what you pass (call by value), and return hands the answer back.',
+      'A function may even call itself — recursion — as long as a base case stops it.',
+      'TASK: Define int average(int a, int b, int c) that returns their average. In main, read three ints and print average(x, y, z). For 3 4 5 print 4.',
+    ],
+    starter:
+      '#include <iostream>\nusing namespace std;\n\n// define int average(int a, int b, int c) here\n\nint main() {\n    int x;\n    int y;\n    int z;\n    cin >> x >> y >> z;\n    // print average(x, y, z)\n\n    return 0;\n}\n',
+    hints: [
+      'The function lives ABOVE main: its own int header, braces, and a return.',
+      'int average(int a, int b, int c) {\n    return (a + b + c) / 3;\n}',
+      'Calling it looks like using a variable:  cout << average(x, y, z);',
+    ],
+    solution:
+      '#include <iostream>\nusing namespace std;\n\nint average(int a, int b, int c) {\n    return (a + b + c) / 3;\n}\n\nint main() {\n    int x;\n    int y;\n    int z;\n    cin >> x >> y >> z;\n    cout << average(x, y, z);\n    return 0;\n}\n',
+    expect: [
+      { label: 'average of 3 4 5 is 4', stdin: '3 4 5', output: '4' },
+      { label: 'average of 10 20 30 is 20', stdin: '10 20 30', output: '20' },
+    ],
+    require: [
+      { label: 'defines average(...)', pattern: /int\s+average\s*\(/, hint: 'define it: int average(int a, int b, int c) { ... }' },
+      { label: 'returns the answer', pattern: /return\s+/, hint: 'hand the result back with return' },
+    ],
+    terms: ['func', 'params', 'returnval', 'recursion', 'cin'],
+    reward: { ability: 'subroutine', scrap: 18 },
+    doneFlag: 'done-ch3-func',
+  },
+  {
+    id: 'ch3-string',
+    title: 'NAME TAG',
+    floor: 3,
+    teaches: 'strings — length & letters',
+    brief: [
+      'A string is a row of chars, and it acts like one: s[i] is character number i, and s.length() (or s.size()) says how many there are — both come with the standard <string> library.',
+      'Chars compare like anything else: s[i] == \'E\' asks if character i is a capital E.',
+      'TASK: Read a word. Print LEN: and its length, then on the next line E: and how many capital E letters it contains. PERISHABLE has 10 letters and 2 Es.',
+    ],
+    starter:
+      '#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s;\n    cin >> s;\n    // line 1: LEN: s.length()\n    // line 2: E: count of \'E\' chars in s\n\n    return 0;\n}\n',
+    hints: [
+      'The length is one call. The count is a loop over every index, checking each char.',
+      'Loop the indexes:  for (int i = 0; i < s.length(); i++) { ... }',
+      "Count matches:  if (s[i] == 'E') { count++; }",
+    ],
+    solution:
+      '#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s;\n    cin >> s;\n    cout << "LEN: " << s.length() << endl;\n    int count = 0;\n    for (int i = 0; i < s.length(); i++) {\n        if (s[i] == \'E\') {\n            count++;\n        }\n    }\n    cout << "E: " << count;\n    return 0;\n}\n',
+    expect: [
+      { label: 'PERISHABLE: 10 letters, 2 Es', stdin: 'PERISHABLE', output: 'LEN: 10\nE: 2' },
+      { label: 'WES: 3 letters, 1 E', stdin: 'WES', output: 'LEN: 3\nE: 1' },
+      { label: 'MOP: 3 letters, 0 Es', stdin: 'MOP', output: 'LEN: 3\nE: 0' },
+    ],
+    require: [
+      { label: 'asks the string its length', pattern: /\.length\s*\(\s*\)|\.size\s*\(\s*\)/, hint: 'use s.length() or s.size()' },
+      { label: 'looks at the characters', pattern: /s\s*\[/, hint: 'index the string like an array: s[i]' },
+    ],
+    terms: ['stringT', 'length', 'index', 'char', 'forloop', 'compare'],
+    reward: { ramBonus: 2, scrap: 16 },
+    doneFlag: 'done-ch3-string',
+  },
+  {
+    id: 'ch3-struct',
+    title: 'PERSONNEL FILE',
+    floor: 3,
+    teaches: 'structs — group your data',
+    brief: [
+      'A STRUCT bundles related variables into one type — a form with labeled boxes: struct Badge { string name; int id; }; defines the form; Badge b; stamps one out. The dot reaches inside: b.name, b.id.',
+      'Define the struct ABOVE main, like a function.',
+      'TASK: Define struct Badge with a string name and an int id. Read a name and an id into one Badge, then print exactly:  ID 7: WES  (for input WES 7).',
+    ],
+    starter:
+      '#include <iostream>\n#include <string>\nusing namespace std;\n\n// struct Badge { string name; int id; };\n\nint main() {\n    // declare a Badge, cin >> its fields,\n    // print "ID " id ": " name\n\n    return 0;\n}\n',
+    hints: [
+      'The struct definition ends with a semicolon after its closing brace.',
+      'Declare one and fill it:  Badge b;  then  cin >> b.name >> b.id;',
+      'Print the fields:  cout << "ID " << b.id << ": " << b.name;',
+    ],
+    solution:
+      '#include <iostream>\n#include <string>\nusing namespace std;\n\nstruct Badge {\n    string name;\n    int id;\n};\n\nint main() {\n    Badge b;\n    cin >> b.name >> b.id;\n    cout << "ID " << b.id << ": " << b.name;\n    return 0;\n}\n',
+    expect: [
+      { label: 'WES 7 files as ID 7: WES', stdin: 'WES 7', output: 'ID 7: WES' },
+      { label: 'PRAM 12 files as ID 12: PRAM', stdin: 'PRAM 12', output: 'ID 12: PRAM' },
+    ],
+    require: [
+      { label: 'defines struct Badge', pattern: /struct\s+Badge\s*\{/, hint: 'define the form: struct Badge { string name; int id; };' },
+      { label: 'reaches fields with the dot', pattern: /\w\s*\.\s*(name|id)/, hint: 'the dot reaches inside: b.name, b.id' },
+    ],
+    terms: ['structT', 'dot', 'stringT', 'int', 'cin', 'extraction'],
+    reward: { ramBonus: 3, scrap: 22 },
+    doneFlag: 'done-ch3-struct',
   },
 ]
 

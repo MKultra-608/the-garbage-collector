@@ -2,8 +2,8 @@
   "name": "the-garbage-collector",
   "productName": "The Garbage Collector",
   "private": true,
-  "version": "0.1.0",
-  "description": "A silent pixel-art RPG that teaches real C++ — playable demo (Floors 0-1).",
+  "version": "0.2.0",
+  "description": "A silent pixel-art RPG that teaches real C++ — four floors, Labs 1-11.",
   "author": "MKultra-608",
   "license": "MIT",
   "type": "module",
@@ -50,7 +50,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "The Garbage Collector",
-      "artifactName": "TheGarbageCollector-Demo-Setup-${version}.${ext}"
+      "artifactName": "TheGarbageCollector-Setup-${version}.${ext}"
     }
   }
 }

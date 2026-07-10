@@ -235,6 +235,145 @@ expectError('const must be initialized', H + 'int main() { const int X; cout << 
 
 expectError('cin into a const', H + 'int main() { const int X = 1; cin >> X; }', 'const')
 
+// ---- user-defined functions (floor 3, Labs 8-9) ----
+
+expectOut('function with return', H + 'int add(int a, int b) { return a + b; }\nint main() { cout << add(2, 3); }', '5')
+
+expectOut('void function called twice', H + 'void greet() { cout << "HI "; }\nint main() { greet(); greet(); }', 'HI HI ')
+
+expectOut(
+  'function calling another function',
+  H + 'int twice(int x) { return x * 2; }\nint quad(int x) { return twice(twice(x)); }\nint main() { cout << quad(3); }',
+  '12',
+)
+
+expectOut(
+  'call by value: caller variable unchanged',
+  H + 'void bump(int x) { x = x + 2; }\nint main() { int x = 7; bump(x); cout << x; }',
+  '7',
+)
+
+expectOut(
+  'recursion with a base case (factorial)',
+  H + 'int fact(int n) { if (n <= 1) return 1; return n * fact(n - 1); }\nint main() { cout << fact(5); }',
+  '120',
+)
+
+expectError(
+  'recursion without a base case overflows',
+  H + 'int f(int n) { return f(n + 1); }\nint main() { cout << f(0); }',
+  'stack overflow',
+)
+
+expectOut(
+  'prototype first, definition after main',
+  H + 'int twice(int x);\nint main() { cout << twice(4); }\nint twice(int x) { return x * 2; }',
+  '8',
+)
+
+expectOut(
+  'string parameter and return',
+  H + '#include <string>\nstring shout(string s) { return s + "!"; }\nint main() { cout << shout("MOP"); }',
+  'MOP!',
+)
+
+expectError('calling an unknown function', H + 'int main() { cout << mystery(1); }', 'no function named')
+
+expectError('wrong number of arguments', H + 'int add(int a, int b) { return a + b; }\nint main() { cout << add(1); }', 'argument')
+
+// ---- arrays (floor 3, Lab 6) ----
+
+expectOut('array init list + indexing', H + 'int main() { int a[3] = {4, 5, 6}; cout << a[0] << a[2]; }', '46')
+
+expectOut('array size inferred from init list', H + 'int main() { int a[] = {7, 8}; cout << a[1]; }', '8')
+
+expectOut(
+  'array write + loop sum',
+  H + 'int main() { int a[4]; for (int i = 0; i < 4; i++) { a[i] = i * 2; } int s = 0; for (int i = 0; i < 4; i++) { s += a[i]; } cout << s; }',
+  '12',
+)
+
+expectOut(
+  'read array from cin, print reversed',
+  H + 'int main() { int a[3]; for (int i = 0; i < 3; i++) { cin >> a[i]; } for (int i = 2; i >= 0; i--) { cout << a[i] << " "; } }',
+  '9 2 7 ',
+  '7 2 9',
+)
+
+expectOut('array element increment', H + 'int main() { int a[2] = {1, 1}; a[0]++; cout << a[0] << a[1]; }', '21')
+
+expectOut('partial init zero-fills the rest', H + 'int main() { int a[3] = {5}; cout << a[0] << a[1] << a[2]; }', '500')
+
+expectError('array index past the end', H + 'int main() { int a[3]; cout << a[5]; }', 'past the end')
+
+expectError('negative array index', H + 'int main() { int a[3]; cout << a[0 - 1]; }', 'past the end')
+
+expectError('printing a whole array', H + 'int main() { int a[3] = {1, 2, 3}; cout << a; }', 'whole array')
+
+// ---- 2D arrays (floor 3, Lab 7) ----
+
+expectOut('2d array init + indexing', H + 'int main() { int m[2][3] = {{1, 2, 3}, {4, 5, 6}}; cout << m[1][2]; }', '6')
+
+expectOut(
+  '2d array nested-loop largest',
+  H +
+    'int main() { int m[2][2]; for (int i = 0; i < 2; i++) { for (int j = 0; j < 2; j++) { cin >> m[i][j]; } } int big = m[0][0]; for (int i = 0; i < 2; i++) { for (int j = 0; j < 2; j++) { if (m[i][j] > big) { big = m[i][j]; } } } cout << big; }',
+  '9',
+  '4 9 1 7',
+)
+
+expectOut('2d write and read back', H + 'int main() { int m[2][2]; m[1][0] = 42; cout << m[1][0] << m[0][0]; }', '420')
+
+// ---- strings as sequences (floor 3, Lab 10) ----
+
+expectOut('string length()', H + '#include <string>\nint main() { string s = "MOP"; cout << s.length(); }', '3')
+
+expectOut('string size()', H + '#include <string>\nint main() { string s = "CREW"; cout << s.size(); }', '4')
+
+expectOut('string indexing', H + '#include <string>\nint main() { string s = "WES"; cout << s[0] << s[2]; }', 'WS')
+
+expectOut(
+  'count a letter in a string',
+  H +
+    '#include <string>\nint main() { string s = "PERISHABLE"; int count = 0; for (int i = 0; i < s.length(); i++) { if (s[i] == \'E\') { count++; } } cout << count; }',
+  '2',
+)
+
+expectOut('write one character of a string', H + '#include <string>\nint main() { string s = "MOP"; s[0] = \'B\'; cout << s; }', 'BOP')
+
+expectError('string index past the end', H + '#include <string>\nint main() { string s = "MOP"; cout << s[9]; }', 'past the end')
+
+// ---- structs (floor 3, Lab 11) ----
+
+expectOut(
+  'struct fields: write and read',
+  H + 'struct Badge { string name; int id; };\nint main() { Badge b; b.name = "WES"; b.id = 7; cout << b.id << ": " << b.name; }',
+  '7: WES',
+)
+
+expectOut(
+  'C-style struct variable declaration',
+  H + 'struct Badge { int id; };\nint main() { struct Badge b; b.id = 3; cout << b.id; }',
+  '3',
+)
+
+expectOut(
+  'struct copy is a real copy',
+  H + 'struct P { int x; };\nint main() { P a; a.x = 1; P b = a; b.x = 9; cout << a.x << b.x; }',
+  '19',
+)
+
+expectOut(
+  'cin into a struct field',
+  H + 'struct Badge { string name; int id; };\nint main() { Badge b; cin >> b.name >> b.id; cout << b.name << "#" << b.id; }',
+  'WES#12',
+  'WES 12',
+)
+
+expectError('printing a whole struct', H + 'struct P { int x; };\nint main() { P a; cout << a; }', 'whole struct')
+
+expectError('unknown struct field', H + 'struct P { int x; };\nint main() { P a; cout << a.y; }', 'no field')
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed`)
   process.exit(1)

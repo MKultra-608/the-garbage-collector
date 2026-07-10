@@ -15,7 +15,7 @@ const root = path.resolve(__dirname, '..')
 const version = require(path.join(root, 'package.json')).version
 const appDir = path.join(root, 'release', 'win-unpacked')
 const icon = path.join(root, 'electron', 'icon.ico')
-const outExe = path.join(root, 'release', `TheGarbageCollector-Demo-Setup-${version}.exe`)
+const outExe = path.join(root, 'release', `TheGarbageCollector-Setup-${version}.exe`)
 const EXE = 'The Garbage Collector.exe'
 
 if (!fs.existsSync(path.join(appDir, EXE))) {
@@ -53,7 +53,7 @@ const nsi = `Unicode true
 !define SLUG "TheGarbageCollector"
 !define VERSION "${version}"
 
-Name "\${APPNAME} (Demo)"
+Name "\${APPNAME}"
 OutFile "${w(outExe)}"
 InstallDir "$LOCALAPPDATA\\Programs\\\${SLUG}"
 RequestExecutionLevel user
@@ -79,7 +79,7 @@ Section "Install"
   CreateShortCut "$DESKTOP\\\${APPNAME}.lnk" "$INSTDIR\\${EXE}" "" "$INSTDIR\\${EXE}" 0
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
   !define UNKEY "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\\${SLUG}"
-  WriteRegStr HKCU "\${UNKEY}" "DisplayName" "\${APPNAME} (Demo)"
+  WriteRegStr HKCU "\${UNKEY}" "DisplayName" "\${APPNAME}"
   WriteRegStr HKCU "\${UNKEY}" "DisplayVersion" "\${VERSION}"
   WriteRegStr HKCU "\${UNKEY}" "Publisher" "MKultra-608"
   WriteRegStr HKCU "\${UNKEY}" "DisplayIcon" "$INSTDIR\\${EXE}"

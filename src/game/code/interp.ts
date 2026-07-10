@@ -1,11 +1,14 @@
 /**
  * A miniature C++ interpreter, sized for the beginner subset the game
- * teaches (chapters 0-3): int/double/bool/char/std::string variables,
- * arithmetic, cout/cin, if/else, while, for, blocks, break/continue.
+ * teaches (floors 0-3): int/double/bool/char/std::string variables, const,
+ * arithmetic, cout/cin, if/else, switch, while, for, break/continue,
+ * user-defined functions (call-by-value, recursion with a depth limit),
+ * 1D/2D arrays with bounds checking, string indexing + .length()/.size(),
+ * and structs with fields (value copy semantics).
  *
  * It exists so challenges can genuinely RUN the player's program and check
  * its output instead of regex-matching source text. It is intentionally not
- * a full compiler: no user-defined functions, arrays, pointers or classes
+ * a full compiler: no pointers, references, classes/methods, or templates
  * yet — those chapters should extend this file (see docs/ROADMAP.md) or
  * swap in a WASM toolchain behind the same `runCpp` signature.
  */
@@ -25,7 +28,7 @@ interface Tok {
 }
 
 const MULTI_OPS = ['<<', '>>', '<=', '>=', '==', '!=', '&&', '||', '++', '--', '+=', '-=', '*=', '/=', '%=', '::']
-const SINGLE_OPS = '+-*/%=<>!(){};,&:'
+const SINGLE_OPS = '+-*/%=<>!(){};,&:[].'
 
 class CppError extends Error {
   constructor(msg: string, readonly line: number) {
@@ -157,14 +160,48 @@ function lex(src: string): Tok[] {
 // ------------------------------------------------------------------ values
 
 type CppType = 'int' | 'double' | 'bool' | 'char' | 'string'
+/** Runtime value kinds: the scalar CppTypes plus aggregates. */
+type VType = CppType | 'array' | 'struct'
 interface Value {
-  t: CppType
+  t: VType
   v: number | boolean | string
   /** Declared const — reassignment is a (teachable) error. */
   ro?: boolean
+  /** array: the element Values (mutating them in place makes refs work). */
+  elems?: Value[]
+  /** array: what each element is ('array' again for 2D). */
+  elemT?: VType
+  /** struct: the struct type's name, and its field Values. */
+  sname?: string
+  fields?: Map<string, Value>
+}
+
+interface FnDef {
+  ret: CppType | 'void'
+  params: { type: CppType; name: string }[]
+  /** Token index of the first statement inside the body (just after '{'). */
+  body: number
+  line: number
+}
+
+interface StructDef {
+  fields: { type: CppType; name: string }[]
 }
 
 const TYPE_WORDS = ['int', 'double', 'float', 'bool', 'char', 'string', 'long']
+
+function normType(w: string): CppType {
+  if (w === 'float') return 'double'
+  if (w === 'long') return 'int'
+  return w as CppType
+}
+
+function zeroVal(type: CppType): Value {
+  return type === 'string' ? { t: 'string', v: '' }
+    : type === 'char' ? { t: 'char', v: '\0' }
+    : type === 'bool' ? { t: 'bool', v: false }
+    : { t: type, v: 0 }
+}
 
 function isNumeric(v: Value): boolean {
   return v.t === 'int' || v.t === 'double' || v.t === 'bool' || v.t === 'char'
@@ -205,6 +242,10 @@ class Interp {
   private out = ''
   private stdin: string[]
   private steps = 0
+  private fns = new Map<string, FnDef>()
+  private structs = new Map<string, StructDef>()
+  private callDepth = 0
+  private retVal: Value | undefined
 
   constructor(private toks: Tok[], stdin: string) {
     this.stdin = stdin.trim() === '' ? [] : stdin.trim().split(/\s+/)
@@ -247,7 +288,93 @@ class Interp {
     top.set(name, val)
   }
 
+  /**
+   * Collects top-level struct definitions and function definitions before the
+   * program runs, so functions may be defined before OR after main (and
+   * prototypes like `int f(int);` are tolerated and skipped).
+   */
+  private prepass(): void {
+    const n = this.toks.length
+    let i = 0
+    while (i < n) {
+      const t = this.toks[i]
+      // struct Name { type field; ... };
+      if (t.t === 'id' && t.v === 'struct' && this.toks[i + 1]?.t === 'id' && this.toks[i + 2]?.v === '{') {
+        const name = this.toks[i + 1].v
+        const fields: { type: CppType; name: string }[] = []
+        let j = i + 3
+        while (j < n && this.toks[j].v !== '}') {
+          const ft = this.toks[j]
+          if (ft.t === 'id' && TYPE_WORDS.includes(ft.v) && this.toks[j + 1]?.t === 'id') {
+            fields.push({ type: normType(ft.v), name: this.toks[j + 1].v })
+            j += 2
+            while (j < n && this.toks[j].v !== ';') j++ // tolerate junk to the ';'
+            j++
+          } else {
+            j++
+          }
+        }
+        this.structs.set(name, { fields })
+        i = j + 1 // past '}'
+        if (this.toks[i]?.v === ';') i++
+        continue
+      }
+      // ret-type name ( ... ) { body }   |   ret-type name ( ... ) ;  (prototype)
+      if (
+        t.t === 'id' && (TYPE_WORDS.includes(t.v) || t.v === 'void') &&
+        this.toks[i + 1]?.t === 'id' && this.toks[i + 2]?.v === '('
+      ) {
+        const name = this.toks[i + 1].v
+        let j = i + 3
+        let d = 0
+        while (j < n && !(this.toks[j].v === ')' && d === 0)) {
+          if (this.toks[j].v === '(') d++
+          if (this.toks[j].v === ')') d--
+          j++
+        }
+        const after = this.toks[j + 1]
+        if (after?.v === ';') {
+          i = j + 2 // prototype — the definition will be picked up elsewhere
+          continue
+        }
+        if (after?.v === '{') {
+          if (name !== 'main') {
+            const params: { type: CppType; name: string }[] = []
+            let k = i + 3
+            while (k < j) {
+              const pt = this.toks[k]
+              if (pt.t === 'id' && TYPE_WORDS.includes(pt.v) && this.toks[k + 1]?.t === 'id') {
+                params.push({ type: normType(pt.v), name: this.toks[k + 1].v })
+                k += 2
+              } else {
+                k++
+              }
+            }
+            this.fns.set(name, {
+              ret: t.v === 'void' ? 'void' : normType(t.v),
+              params,
+              body: j + 2,
+              line: t.line,
+            })
+          }
+          // skip the body
+          let bd = 1
+          let m = j + 2
+          while (m < n && bd > 0) {
+            if (this.toks[m].v === '{') bd++
+            if (this.toks[m].v === '}') bd--
+            m++
+          }
+          i = m
+          continue
+        }
+      }
+      i++
+    }
+  }
+
   run(): string {
+    this.prepass()
     // locate `int main ( ... ) {`
     let i = 0
     while (i < this.toks.length) {
@@ -378,7 +505,7 @@ class Interp {
           return this.switchStmt()
         case 'return': {
           this.next()
-          if (this.peek()?.v !== ';') this.expression()
+          this.retVal = this.peek()?.v !== ';' ? this.expression() : undefined
           this.expect(';', "return needs a ';'")
           return RETURN
         }
@@ -401,10 +528,63 @@ class Interp {
         this.declStmt()
         return undefined
       }
+      // struct variable declarations: `struct Badge b;` or C++-style `Badge b;`
+      if (t.v === 'struct' && this.peek(1)?.t === 'id' && this.structs.has(this.peek(1)!.v)) {
+        this.next() // 'struct'
+        this.structDeclStmt()
+        return undefined
+      }
+      if (this.structs.has(t.v) && this.peek(1)?.t === 'id') {
+        this.structDeclStmt()
+        return undefined
+      }
+      if (t.v === 'struct') {
+        throw new CppError(
+          'define the struct ABOVE main — struct Name { ... }; — then declare variables of it here',
+          t.line,
+        )
+      }
     }
     this.expression()
     this.expect(';', `expected ';' after statement (line ${t.line})`)
     return undefined
+  }
+
+  private zeroStruct(sname: string, line: number): Value {
+    const def = this.structs.get(sname)
+    if (!def) throw new CppError(`unknown struct '${sname}'`, line)
+    return { t: 'struct', v: 0, sname, fields: new Map(def.fields.map((f) => [f.name, zeroVal(f.type)])) }
+  }
+
+  /** Copies the fields of struct `src` into `dst` in place (value semantics). */
+  private copyStructInto(dst: Value, src: Value, line: number): void {
+    if (src.t !== 'struct' || src.sname !== dst.sname) {
+      throw new CppError(`can only assign another ${dst.sname} here`, line)
+    }
+    for (const [k, f] of dst.fields!) {
+      const s = src.fields!.get(k)!
+      f.v = s.v
+    }
+  }
+
+  private structDeclStmt(): void {
+    const typeTok = this.next() // struct type name
+    while (true) {
+      const nameTok = this.next()
+      if (nameTok.t !== 'id') throw new CppError('expected a variable name here', nameTok.line)
+      const val = this.zeroStruct(typeTok.v, nameTok.line)
+      if (this.peek()?.v === '=') {
+        this.next()
+        this.copyStructInto(val, this.expression(), nameTok.line)
+      }
+      this.declare(nameTok.v, val, nameTok.line)
+      if (this.peek()?.v === ',') {
+        this.next()
+        continue
+      }
+      this.expect(';', `did you forget the ';' after declaring '${nameTok.v}'?`)
+      return
+    }
   }
 
   private declStmt(): void {
@@ -425,7 +605,11 @@ class Interp {
       const nameTok = this.next()
       if (nameTok.t !== 'id') throw new CppError('expected a variable name here', nameTok.line)
       let val: Value
-      if (this.peek()?.v === '=') {
+      if (this.peek()?.v === '[') {
+        // array declaration: int a[5]; int a[] = {..}; int m[2][3]; ...
+        if (ro) throw new CppError('const arrays are not supported here — use a plain array', nameTok.line)
+        val = this.arrayDecl(type as CppType, nameTok.line)
+      } else if (this.peek()?.v === '=') {
         this.next()
         val = this.coerce(this.expression(), type, nameTok.line)
       } else {
@@ -433,11 +617,7 @@ class Interp {
           throw new CppError(`a const variable must be initialized: const ${type} ${nameTok.v} = ...;`, nameTok.line)
         }
         // uninitialized — C++ would give you garbage; we give you the lesson instead
-        val =
-          type === 'string' ? { t: 'string', v: '' }
-          : type === 'char' ? { t: 'char', v: '\0' }
-          : type === 'bool' ? { t: 'bool', v: false }
-          : { t: type, v: 0 }
+        val = zeroVal(type as CppType)
       }
       if (ro) val = { ...val, ro: true }
       this.declare(nameTok.v, val, nameTok.line)
@@ -450,7 +630,72 @@ class Interp {
     }
   }
 
+  /** Parses `[dims]...` (+ optional `= {init}`) after an array's name. */
+  private arrayDecl(elemType: CppType, line: number): Value {
+    const dims: number[] = []
+    while (this.peek()?.v === '[') {
+      this.next()
+      if (this.peek()?.v === ']') {
+        dims.push(-1) // size to be inferred from the init list
+        this.next()
+      } else {
+        const sz = Math.trunc(asNum(this.expression()))
+        if (sz <= 0) throw new CppError('an array size must be a positive number', line)
+        if (sz > 10_000) throw new CppError('that array is far too big for this terminal', line)
+        this.expect(']', "an array size needs its closing ']'")
+        dims.push(sz)
+      }
+    }
+    if (dims.length > 2) throw new CppError('only 1D and 2D arrays are supported here', line)
+    let init: Value | null = null
+    if (this.peek()?.v === '=') {
+      this.next()
+      init = this.parseInitList(elemType, dims, 0, line)
+    }
+    if (init) return init
+    if (dims.includes(-1)) {
+      throw new CppError('int a[] needs an init list to know its size: int a[] = {1, 2};', line)
+    }
+    return this.makeArray(elemType, dims)
+  }
+
+  private makeArray(elemType: CppType, dims: number[]): Value {
+    if (dims.length === 1) {
+      return { t: 'array', v: 0, elemT: elemType, elems: Array.from({ length: dims[0] }, () => zeroVal(elemType)) }
+    }
+    return {
+      t: 'array', v: 0, elemT: 'array',
+      elems: Array.from({ length: dims[0] }, () => this.makeArray(elemType, dims.slice(1))),
+    }
+  }
+
+  /** Parses `{a, b, ...}` (or nested `{{..},{..}}`) into an array Value. */
+  private parseInitList(elemType: CppType, dims: number[], depth: number, line: number): Value {
+    this.expect('{', 'an array init list starts with {')
+    const items: Value[] = []
+    const nested = depth + 1 < dims.length
+    while (this.peek()?.v !== '}') {
+      if (nested) items.push(this.parseInitList(elemType, dims, depth + 1, line))
+      else items.push(this.coerce(this.expression(), elemType, line))
+      if (this.peek()?.v === ',') this.next()
+      else break
+    }
+    this.expect('}', "an init list needs its closing '}'")
+    const want = dims[depth]
+    if (want !== -1 && items.length > want) {
+      throw new CppError(`too many initializers — the array only holds ${want}`, line)
+    }
+    const size = want === -1 ? items.length : want
+    while (items.length < size) {
+      items.push(nested ? this.makeArray(elemType, dims.slice(depth + 1)) : zeroVal(elemType))
+    }
+    return { t: 'array', v: 0, elemT: nested ? 'array' : elemType, elems: items }
+  }
+
   private coerce(v: Value, type: CppType, line: number): Value {
+    if (v.t === 'array' || v.t === 'struct') {
+      throw new CppError(`cannot store a whole ${v.t} in a ${type}`, line)
+    }
     if (type === 'string') {
       if (v.t === 'string') return v
       if (v.t === 'char') return { t: 'string', v: v.v as string }
@@ -687,6 +932,36 @@ class Interp {
     }
   }
 
+  /** Runs a user-defined function body with its own scope stack. */
+  private callFn(name: string, args: Value[], line: number): Value {
+    const fn = this.fns.get(name)!
+    if (args.length !== fn.params.length) {
+      throw new CppError(`${name} takes ${fn.params.length} argument(s), but got ${args.length}`, line)
+    }
+    if (++this.callDepth > 48) {
+      this.callDepth = 0
+      throw new CppError(`stack overflow — ${name} keeps calling itself with no base case to stop it`, line)
+    }
+    // call by value: each parameter is a fresh copy of its argument
+    const frame = new Map<string, Value>()
+    fn.params.forEach((p, i) => frame.set(p.name, this.coerce(args[i], p.type, line)))
+    const savedScopes = this.scopes
+    const savedPos = this.pos
+    const savedRet = this.retVal
+    this.scopes = [frame]
+    this.pos = fn.body
+    this.retVal = undefined
+    this.block()
+    const rv = this.retVal
+    this.scopes = savedScopes
+    this.pos = savedPos
+    this.retVal = savedRet
+    this.callDepth--
+    if (fn.ret === 'void') return { t: 'int', v: 0 } // never printed; calls used as statements
+    if (rv === undefined) return zeroVal(fn.ret) // fell off the end without return — be gentle
+    return this.coerce(rv, fn.ret, line)
+  }
+
   private coutStmt(): void {
     this.next() // cout
     if (this.peek()?.v !== '<<') {
@@ -700,7 +975,14 @@ class Interp {
         if (t.v === 'endl') this.out += '\n'
         continue
       }
-      this.out += fmt(this.expression())
+      const val = this.expression()
+      if (val.t === 'array') {
+        throw new CppError('cannot print a whole array — print its elements one at a time', this.lastLine())
+      }
+      if (val.t === 'struct') {
+        throw new CppError('cannot print a whole struct — print its fields one at a time', this.lastLine())
+      }
+      this.out += fmt(val)
     }
     this.expect(';', "did you forget the ';' after cout?")
   }
@@ -712,14 +994,28 @@ class Interp {
     }
     while (this.peek()?.v === '>>') {
       this.next()
-      const nameTok = this.next()
-      if (nameTok.t !== 'id') throw new CppError('cin needs a variable to read into', nameTok.line)
-      const target = this.lookup(nameTok.v, nameTok.line)
-      if (target.ro) throw new CppError(`'${nameTok.v}' is const — cin cannot overwrite it`, nameTok.line)
+      const nameTok = this.peek()
+      if (!nameTok || nameTok.t !== 'id') {
+        throw new CppError('cin needs a variable to read into', nameTok?.line ?? this.lastLine())
+      }
+      const tgt = this.tryChainTarget() // handles x, a[i], m[i][j], b.field, s[i]
+      if (!tgt) throw new CppError('cin cannot read into that', nameTok.line)
+      if ('ref' in tgt) {
+        if (tgt.ref.ro) throw new CppError(`'${nameTok.v}' is const — cin cannot overwrite it`, nameTok.line)
+        if (tgt.ref.t === 'array' || tgt.ref.t === 'struct') {
+          throw new CppError(`cin cannot read a whole ${tgt.ref.t} — read one element at a time`, nameTok.line)
+        }
+      }
       const word = this.stdin.shift()
       if (word === undefined) {
         throw new CppError('the program asked for more input than was provided', nameTok.line)
       }
+      if ('strOwner' in tgt) {
+        const s = tgt.strOwner.v as string
+        tgt.strOwner.v = s.slice(0, tgt.idx) + (word[0] ?? '\0') + s.slice(tgt.idx + 1)
+        continue
+      }
+      const target = tgt.ref
       if (target.t === 'string') target.v = word
       else if (target.t === 'char') target.v = word[0] ?? '\0'
       else if (target.t === 'bool') target.v = word !== '0'
@@ -746,24 +1042,103 @@ class Interp {
   }
 
   private assign(): Value {
+    const ASSIGN_OPS = ['=', '+=', '-=', '*=', '/=', '%=']
     const t = this.peek()
     const t1 = this.peek(1)
-    if (t?.t === 'id' && t1?.t === 'op' && ['=', '+=', '-=', '*=', '/=', '%='].includes(t1.v)) {
+    // fast path: a bare variable name being assigned
+    if (t?.t === 'id' && t1?.t === 'op' && ASSIGN_OPS.includes(t1.v)) {
       const name = this.next().v
       const op = this.next().v
       const target = this.lookup(name, t.line)
-      if (target.ro) throw new CppError(`'${name}' is const — its value cannot be changed`, t.line)
-      const rhs = this.assign()
-      if (op === '=') {
-        const nv = this.coerce(rhs, target.t, t.line)
-        target.v = nv.v
-      } else {
-        const combined = this.binOp(op[0], target, rhs, t.line)
-        target.v = this.coerce(combined, target.t, t.line).v
+      return this.assignInto(target, op, name, t.line)
+    }
+    // chained target: a[i] = ..., m[i][j] = ..., b.field = ..., s[i] = 'c'
+    if (t?.t === 'id' && t1?.t === 'op' && (t1.v === '[' || t1.v === '.')) {
+      const save = this.pos
+      const tgt = this.tryChainTarget()
+      if (tgt) {
+        const opTok = this.peek()
+        if (opTok?.t === 'op' && ASSIGN_OPS.includes(opTok.v)) {
+          this.next()
+          if ('strOwner' in tgt) {
+            if (opTok.v !== '=') throw new CppError("a string character only supports plain '='", t.line)
+            const ch = this.coerce(this.assign(), 'char', t.line)
+            const s = tgt.strOwner.v as string
+            tgt.strOwner.v = s.slice(0, tgt.idx) + (ch.v as string) + s.slice(tgt.idx + 1)
+            return { t: 'char', v: ch.v }
+          }
+          return this.assignInto(tgt.ref, opTok.v, t.v, t.line)
+        }
       }
-      return { ...target }
+      this.pos = save // it was a read, not an assignment — reparse as an expression
     }
     return this.or()
+  }
+
+  /** Applies `target op= rhs`, with const/aggregate guards. */
+  private assignInto(target: Value, op: string, name: string, line: number): Value {
+    if (target.ro) throw new CppError(`'${name}' is const — its value cannot be changed`, line)
+    const rhs = this.assign()
+    if (target.t === 'struct') {
+      if (op !== '=') throw new CppError(`structs only support plain '='`, line)
+      this.copyStructInto(target, rhs, line)
+      return { ...target }
+    }
+    if (target.t === 'array') {
+      throw new CppError('cannot assign a whole array — assign one element, like a[0] = ...', line)
+    }
+    if (op === '=') {
+      target.v = this.coerce(rhs, target.t, line).v
+    } else {
+      const combined = this.binOp(op[0], target, rhs, line)
+      target.v = this.coerce(combined, target.t, line).v
+    }
+    return { ...target }
+  }
+
+  /**
+   * Parses `name ([idx] | .field)*` and resolves it to an assignable place.
+   * Returns null when the chain turns out not to be assignable (e.g. a
+   * method call like .length()) — the caller restores position and reparses.
+   */
+  private tryChainTarget(): { ref: Value } | { strOwner: Value; idx: number } | null {
+    const idTok = this.next()
+    let cur = this.lookup(idTok.v, idTok.line)
+    while (true) {
+      const t = this.peek()
+      if (t?.t === 'op' && t.v === '[') {
+        this.next()
+        const idx = Math.trunc(asNum(this.expression()))
+        this.expect(']', "indexing needs its closing ']'")
+        if (cur.t === 'array') {
+          const elems = cur.elems!
+          if (idx < 0 || idx >= elems.length) {
+            throw new CppError(`index ${idx} is past the end of this array (size ${elems.length})`, t.line)
+          }
+          cur = elems[idx]
+          continue
+        }
+        if (cur.t === 'string') {
+          const s = cur.v as string
+          if (idx < 0 || idx >= s.length) {
+            throw new CppError(`index ${idx} is past the end of this string (length ${s.length})`, t.line)
+          }
+          return { strOwner: cur, idx }
+        }
+        throw new CppError('only arrays and strings can be indexed with [ ]', t.line)
+      }
+      if (t?.t === 'op' && t.v === '.') {
+        if (cur.t !== 'struct') return null // .length() and friends — a read
+        this.next()
+        const nameTok = this.next()
+        if (nameTok.t !== 'id') throw new CppError("'.' needs a member name after it", nameTok.line)
+        const f = cur.fields!.get(nameTok.v)
+        if (!f) throw new CppError(`${cur.sname} has no field named '${nameTok.v}'`, nameTok.line)
+        cur = f
+        continue
+      }
+      return { ref: cur }
+    }
   }
 
   private or(): Value {
@@ -906,17 +1281,60 @@ class Interp {
   }
 
   private postfix(): Value {
-    const v = this.primary()
-    const t = this.peek()
-    if (this.opIs('++', '--') && t && v.ref) {
-      this.next()
-      const old = { t: v.ref.t, v: v.ref.v }
-      if (v.ref.ro) throw new CppError(`it is const — its value cannot be changed`, t.line)
-      if (!isNumeric(v.ref)) throw new CppError(`cannot ${t.v === '++' ? 'increment' : 'decrement'} a ${v.ref.t}`, t.line)
-      v.ref.v = this.stepValue(v.ref, t.v === '++' ? 1 : -1)
-      return old
+    let v: Value & { ref?: Value } = this.primary()
+    while (true) {
+      const t = this.peek()
+      if (t?.t === 'op' && t.v === '[') {
+        this.next()
+        const idx = Math.trunc(asNum(this.expression()))
+        this.expect(']', "indexing needs its closing ']'")
+        if (v.t === 'array') {
+          const elems = v.elems!
+          if (idx < 0 || idx >= elems.length) {
+            throw new CppError(`index ${idx} is past the end of this array (size ${elems.length})`, t.line)
+          }
+          const el = elems[idx]
+          v = { ...el, ref: el }
+          continue
+        }
+        if (v.t === 'string') {
+          const s = v.v as string
+          if (idx < 0 || idx >= s.length) {
+            throw new CppError(`index ${idx} is past the end of this string (length ${s.length})`, t.line)
+          }
+          v = { t: 'char', v: s[idx] }
+          continue
+        }
+        throw new CppError('only arrays and strings can be indexed with [ ]', t.line)
+      }
+      if (t?.t === 'op' && t.v === '.') {
+        this.next()
+        const nameTok = this.next()
+        if (nameTok.t !== 'id') throw new CppError("'.' needs a member name after it", nameTok.line)
+        if (v.t === 'string' && (nameTok.v === 'length' || nameTok.v === 'size')) {
+          this.expect('(', `${nameTok.v} is called with parentheses: .${nameTok.v}()`)
+          this.expect(')')
+          v = { t: 'int', v: (v.v as string).length }
+          continue
+        }
+        if (v.t === 'struct') {
+          const f = v.fields!.get(nameTok.v)
+          if (!f) throw new CppError(`${v.sname} has no field named '${nameTok.v}'`, nameTok.line)
+          v = { ...f, ref: f }
+          continue
+        }
+        throw new CppError(`'.${nameTok.v}' — only structs have fields (strings have .length() / .size())`, nameTok.line)
+      }
+      if (this.opIs('++', '--') && t && v.ref) {
+        this.next()
+        const old = { t: v.ref.t, v: v.ref.v }
+        if (v.ref.ro) throw new CppError(`it is const — its value cannot be changed`, t.line)
+        if (!isNumeric(v.ref)) throw new CppError(`cannot ${t.v === '++' ? 'increment' : 'decrement'} a ${v.ref.t}`, t.line)
+        v.ref.v = this.stepValue(v.ref, t.v === '++' ? 1 : -1)
+        return old
+      }
+      return v
     }
-    return v
   }
 
   private primary(): Value & { ref?: Value } {
@@ -934,8 +1352,26 @@ class Interp {
     if (t.t === 'id') {
       if (t.v === 'true') return { t: 'bool', v: true }
       if (t.v === 'false') return { t: 'bool', v: false }
+      if (this.peek()?.v === '(') {
+        // function call
+        if (!this.fns.has(t.v)) {
+          throw new CppError(`no function named '${t.v}' is defined`, t.line)
+        }
+        this.next() // (
+        const args: Value[] = []
+        if (this.peek()?.v !== ')') {
+          args.push(this.expression())
+          while (this.peek()?.v === ',') {
+            this.next()
+            args.push(this.expression())
+          }
+        }
+        this.expect(')', `the call to ${t.v}(...) needs its closing ')'`)
+        return this.callFn(t.v, args, t.line)
+      }
       const ref = this.lookup(t.v, t.line)
-      return { t: ref.t, v: ref.v, ref }
+      // aggregates carry their elems/fields along so chains ([i], .field) work
+      return { ...ref, ref }
     }
     throw new CppError(`unexpected '${t.v}' in expression`, t.line)
   }

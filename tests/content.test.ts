@@ -10,17 +10,18 @@
  */
 import { MAPS, FLOORS } from '../src/game/data/maps.ts'
 import {
-  JANITOR, PRAM, COURIER, CLERK, TRASH_PILE,
+  JANITOR, PRAM, COURIER, CLERK, TEMP, TRASH_PILE,
   CRUMPLE, LINT_GOLEM, SLUDGE_CONE, SHREDLING, JUNK_FAX, MISLABEL,
   TALLYMORE, ROLO, OFF_BY_ONE,
+  COPYPASTA, SCOPE_CREEP, STACK_OVERFLOW,
 } from '../src/art/sprites.ts'
 import { CHALLENGES } from '../src/game/data/challenges.ts'
 import { ENEMIES } from '../src/game/data/enemies.ts'
 import { ABILITIES } from '../src/game/data/abilities.ts'
 
 let bad = 0
-const TILE_CHARS = new Set('V#.,CDMEPWSHFAG'.split(''))
-const SOLID = new Set('V#DMEPWSHFAG'.split(''))
+const TILE_CHARS = new Set('V#.,CDMEPWSHFAUG'.split(''))
+const SOLID = new Set('V#DMEPWSHFAUG'.split(''))
 
 for (const map of Object.values(MAPS)) {
   const w = map.grid[0].length
@@ -82,9 +83,10 @@ for (const floor of FLOORS) {
 
 const arts = [
   ...JANITOR.down, ...JANITOR.up, ...JANITOR.side,
-  PRAM, COURIER, CLERK, TRASH_PILE,
+  PRAM, COURIER, CLERK, TEMP, TRASH_PILE,
   CRUMPLE, LINT_GOLEM, SLUDGE_CONE, SHREDLING, JUNK_FAX, MISLABEL,
   TALLYMORE, ROLO, OFF_BY_ONE,
+  COPYPASTA, SCOPE_CREEP, STACK_OVERFLOW,
 ]
 for (const art of arts) {
   const w = Math.max(...art.rows.map((r) => r.length))

@@ -232,13 +232,81 @@ const floor2: MapDef = {
   ],
 }
 
-export const MAPS: Record<string, MapDef> = { floor0, floor1, floor2 }
+// ------------------------------------------------------------------ Floor 3
+// The Cubicle Maze. Fabric partitions turn the open plan into a labyrinth of
+// little scopes; every pod is somebody's whole world. STACK OVERFLOW is piled
+// up in the corner office, still adding trays to itself.
+
+const floor3: MapDef = {
+  id: 'floor3',
+  name: 'FLOOR 3 — CUBICLE MAZE',
+  grid: [
+    BORDER,
+    topWall(14),
+    mrow('UUUU.UUUUUU.UUUUUU.UUU'), // partition maze, north pods
+    mrow('...U....U......U......'),
+    mrow('U..U.DD.U.DD...U.DD...'),
+    mrow('U.......U......U......'),
+    mrow('UUUU.UUUUUUUU.UUUUUUU.'),
+    mrow('', 'E'), // elevator (west) + main corridor
+    mrow('', 'E'),
+    mrow('UUUUU.UUUUUU.UUUUUUUU.'),
+    mrow('.....U......U....,,,,,'), // south pods | corner office (carpet)
+    mrow('.DD..U..DD..U....,,,,,'),
+    mrow('.....U....######.,,,,,'),
+    mrow('.....U....#M..M#.,,W,,'), // terminal pod
+    mrow(''),
+    BOTTOM,
+    BORDER,
+  ],
+  entities: [
+    { kind: 'elevator', x: 1, y: 7 },
+    { kind: 'elevator', x: 1, y: 8 },
+    {
+      kind: 'sign',
+      x: 14,
+      y: 1,
+      text: 'FLOOR 3 NOTICE: These terminals teach the tools of organization — arrays and grids for data, functions for work you refuse to write twice, structs for records. The corner office is buried under work it keeps assigning to itself. Do not take a message.',
+    },
+    {
+      kind: 'npc',
+      x: 8,
+      y: 11,
+      name: 'TEMP',
+      lines: [
+        'I have been a temp here eleven years. No desk of my own. I just get copied wherever there is a gap.',
+        'That is the whole disease of this floor: nobody writes a function. They copy the work and paste it into another cubicle.',
+        'The thing in the corner office delegates to itself. No base case. It has been "almost done" since before I started.',
+      ],
+    },
+    { kind: 'terminal', x: 13, y: 13 },
+    { kind: 'terminal', x: 16, y: 13 },
+    { kind: 'trash', x: 8, y: 3, enemy: 'copypasta', flag: 'f3-trash-1' },
+    { kind: 'trash', x: 20, y: 5, enemy: 'scopecreep', flag: 'f3-trash-2' },
+    { kind: 'trash', x: 9, y: 10, enemy: 'copypasta', flag: 'f3-trash-3' },
+    {
+      kind: 'boss',
+      x: 22,
+      y: 11,
+      enemy: 'stackoverflow',
+      flag: 'f3-boss',
+      intro: [
+        'The corner office is not an office anymore. It is a tower of letter trays, floor to ceiling, swaying.',
+        'A tray near the top slides out, hesitates, and stacks itself on the very top. The tower grows by one.',
+        'Somewhere deep inside, a first call is still waiting for an answer that never comes.',
+      ],
+    },
+  ],
+}
+
+export const MAPS: Record<string, MapDef> = { floor0, floor1, floor2, floor3 }
 
 /** All floors, in ride order. Index doubles as floor number. */
 const ALL_FLOORS: FloorInfo[] = [
   { id: 'floor0', name: 'B  ORIENTATION', spawn: { x: 27, y: 8, facing: 'left' } },
   { id: 'floor1', name: '1  MAILROOM', spawn: { x: 2, y: 8, facing: 'right' }, bossFlag: 'f1-boss' },
   { id: 'floor2', name: '2  ARCHIVES', spawn: { x: 2, y: 8, facing: 'right' }, bossFlag: 'f2-boss' },
+  { id: 'floor3', name: '3  CUBICLES', spawn: { x: 2, y: 8, facing: 'right' }, bossFlag: 'f3-boss' },
 ]
 
 /**

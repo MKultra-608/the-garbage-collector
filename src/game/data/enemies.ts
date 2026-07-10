@@ -2,6 +2,7 @@
 import {
   CRUMPLE, LINT_GOLEM, SLUDGE_CONE, SHREDLING, JUNK_FAX, MISLABEL,
   TALLYMORE, ROLO, OFF_BY_ONE,
+  COPYPASTA, SCOPE_CREEP, STACK_OVERFLOW,
 } from '../../art/sprites.ts'
 
 /**
@@ -180,5 +181,57 @@ export const ENEMIES: Record<string, EnemySpec> = {
       { name: 'Overrun', msg: 'OFF-BY-ONE reaches for index n+1 that is not there — and slams it anyway!', dmg: [9, 13], weight: 1 },
     ],
     scan: 'A filing unit that always counts one past the end. Its drawers number 0,1,2... and then one drawer too many.',
+  },
+
+  // ------------------------------------------------------------- Floor 3
+  copypasta: {
+    id: 'copypasta',
+    name: 'COPYPASTA',
+    hp: 38,
+    xp: 26,
+    scrap: 10,
+    sprite: COPYPASTA,
+    moves: [
+      { name: 'Paste Slam', msg: 'COPYPASTA slams you with sixty identical pages!', dmg: [6, 9], weight: 3 },
+      { name: 'Duplicate', msg: 'COPYPASTA runs itself through the copier again. It thickens!', self: 'atk+', weight: 1 },
+    ],
+    scan: 'The same memo, photocopied until it fused into a body. LESSON: if you write the same code twice, make it a function — one definition, many calls.',
+  },
+  scopecreep: {
+    id: 'scopecreep',
+    name: 'SCOPE CREEP',
+    hp: 44,
+    xp: 30,
+    scrap: 12,
+    sprite: SCOPE_CREEP,
+    moves: [
+      { name: 'Spill Over', msg: 'SCOPE CREEP surges over its partition and onto you!', dmg: [7, 10], weight: 3 },
+      { name: 'Annex', msg: 'SCOPE CREEP claims another cubicle. Its reach grows!', self: 'atk+', weight: 1 },
+    ],
+    scan: 'It was assigned one cubicle. It seeped into nine. LESSON: a variable lives inside the braces that declared it — keep things local, or everything touches everything.',
+  },
+  stackoverflow: {
+    id: 'stackoverflow',
+    name: 'STACK OVERFLOW',
+    hp: 96,
+    xp: 70,
+    scrap: 36,
+    sprite: STACK_OVERFLOW,
+    boss: true,
+    intro:
+      'The corner office is a tower of letter trays, each stacked on the last, swaying. STACK OVERFLOW adds another tray to itself. And another. It has no plan to stop.',
+    defeat:
+      'One clean call is answered, returns, and the tower finally unwinds — tray by tray, frame by frame — until the corner office is just a floor with paper on it.',
+    // Telegraphed rotation: stack itself higher, strike, stack, then the big drop.
+    script: [1, 0, 1, 2],
+    weakTo: 'subroutine',
+    weakHint:
+      'It keeps calling itself and nothing ever returns — frames pile on frames with no base case. LESSON: recursion must shrink toward a stop. One well-factored Subroutine call collapses the whole pile.',
+    moves: [
+      { name: 'Push Frame', msg: 'STACK OVERFLOW drops a loaded tray on you!', dmg: [8, 11], weight: 1 },
+      { name: 'Self Call', msg: 'STACK OVERFLOW stacks another copy of itself. It looms taller!', self: 'atk+', weight: 1 },
+      { name: 'Deep Stack', msg: 'The whole tower lurches and slams down across you!', dmg: [10, 14], weight: 1 },
+    ],
+    scan: 'A pile of pending work that only ever grows. Each layer is a call that never came back.',
   },
 }

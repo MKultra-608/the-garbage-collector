@@ -186,6 +186,21 @@ const archiveBoxTile = make((g) => {
   px(g, PAL.black, 2, 14, 12, 1)
 })
 
+// Cubicle partition — fabric-padded half wall. Floor 3 (cubicle maze) identity.
+const partitionTile = make((g) => {
+  px(g, PAL.gray1, 0, 0, 16, 16)
+  px(g, PAL.dark, 0, 0, 16, 1)
+  px(g, PAL.carpet, 1, 2, 14, 12) // fabric panel
+  px(g, PAL.carpetHi, 1, 2, 14, 1) // top rail highlight
+  px(g, PAL.gray3, 0, 1, 16, 1) // metal cap rail
+  px(g, PAL.black, 1, 2, 1, 12) // frame edges
+  px(g, PAL.black, 14, 2, 1, 12)
+  px(g, PAL.gray2, 2, 6, 12, 1) // fabric seams
+  px(g, PAL.gray2, 2, 10, 12, 1)
+  px(g, PAL.paper, 3, 3, 4, 2) // pinned memo
+  px(g, PAL.black, 12, 14, 3, 1) // floor shadow
+})
+
 const voidTile = make((g) => {
   px(g, PAL.black, 0, 0, 16, 16)
 })
@@ -204,6 +219,7 @@ export const TILES: Record<string, TileSpec> = {
   H: { canvas: pigeonholeTile, solid: true },
   F: { canvas: cabinetTile, solid: true },
   A: { canvas: archiveBoxTile, solid: true },
+  U: { canvas: partitionTile, solid: true },
   G: { canvas: signTile, solid: true },
   V: { canvas: voidTile, solid: true },
 }

@@ -4,6 +4,7 @@ import { drawText, drawPanel, wrapText, drawTextCentered, textWidth } from '../.
 import { PAL } from '../../art/palette.ts'
 import type { GameState } from '../state.ts'
 import type { Challenge } from '../data/challenges.ts'
+import { GLOSSARY } from '../data/glossary.ts'
 import { ABILITIES } from '../data/abilities.ts'
 import { validate, type ValidationResult } from '../code/validator.ts'
 import { saveGame } from '../../engine/save.ts'
@@ -36,6 +37,10 @@ export class EditorScene implements Scene {
   private rewardMsg: string[] = []
   /** How many hints are currently revealed (0..hints.length). */
   private hintLevel = 0
+  /** Which page of the F1 help is showing: solving hints, or the glossary. */
+  private helpPage: 'hints' | 'terms' = 'hints'
+  /** First visible line of the (scrollable) glossary page. */
+  private termScroll = 0
 
   constructor(
     private eng: Engine,
@@ -248,6 +253,25 @@ export class EditorScene implements Scene {
       this.mode = 'edit'
       return
     }
+    // Left/Right (or G) flips between the hints and the glossary.
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || k === 'g') {
+      this.helpPage = this.helpPage === 'hints' ? 'terms' : 'hints'
+      this.termScroll = 0
+      this.eng.audio.blip()
+      return
+    }
+    if (this.helpPage === 'terms') {
+      const lines = this.termLines()
+      const visible = this.termVisibleLines()
+      if (e.key === 'ArrowDown') {
+        this.termScroll = Math.min(Math.max(0, lines.length - visible), this.termScroll + 1)
+        this.eng.audio.key()
+      } else if (e.key === 'ArrowUp') {
+        this.termScroll = Math.max(0, this.termScroll - 1)
+        this.eng.audio.key()
+      }
+      return
+    }
     if (e.key === 'Enter' || k === 'z') {
       if (this.hintLevel < this.ch.hints.length) {
         this.hintLevel++
@@ -259,6 +283,24 @@ export class EditorScene implements Scene {
         this.eng.audio.confirm()
       }
     }
+  }
+
+  /** The glossary page, flattened to colored lines for scrolling. */
+  private termLines(): { text: string; color: string }[] {
+    const w = VIEW_W - 28
+    const lines: { text: string; color: string }[] = []
+    for (const key of this.ch.terms) {
+      const term = GLOSSARY[key]
+      if (!term) continue
+      lines.push({ text: term.t, color: PAL.crt })
+      for (const l of wrapText(term.d, w - 24)) lines.push({ text: '  ' + l, color: PAL.gray4 })
+      lines.push({ text: '', color: PAL.gray4 })
+    }
+    return lines
+  }
+
+  private termVisibleLines(): number {
+    return Math.floor((VIEW_H - 30 - 52) / 9) - 1
   }
 
   private onSolutionKey(e: KeyboardEvent): void {
@@ -337,7 +379,7 @@ export class EditorScene implements Scene {
     // bottom bar
     ctx.fillStyle = PAL.dark
     ctx.fillRect(0, VIEW_H - 12, VIEW_W, 12)
-    drawText(ctx, 'CTRL+ENTER: RUN   F1: HINTS   ESC: LEAVE', 6, VIEW_H - 10, PAL.gray3)
+    drawText(ctx, 'CTRL+ENTER: RUN   F1: HELP/GLOSSARY   ESC: LEAVE', 6, VIEW_H - 10, PAL.gray3)
     drawText(ctx, `${this.row + 1}:${this.col + 1}`, VIEW_W - 40, VIEW_H - 10, PAL.gray2)
 
     if (this.mode === 'result' && this.result) this.drawResult(ctx)
@@ -435,9 +477,29 @@ export class EditorScene implements Scene {
     const x = 14
     const w = VIEW_W - 28
     drawPanel(ctx, x, 12, w, VIEW_H - 30, { border: PAL.crt })
-    drawText(ctx, 'HOW TO SOLVE', x + 8, 18, PAL.crt)
+    // page tabs
+    const onTerms = this.helpPage === 'terms'
+    drawText(ctx, 'HINTS', x + 8, 18, onTerms ? PAL.gray2 : PAL.crt)
+    drawText(ctx, '<->', x + 8 + textWidth('HINTS') + 6, 18, PAL.gray3)
+    drawText(ctx, 'GLOSSARY', x + 8 + textWidth('HINTS <-> '), 18, onTerms ? PAL.crt : PAL.gray2)
     drawText(ctx, this.ch.title, x + 8, 28, PAL.white)
     drawText(ctx, `TEACHES: ${this.ch.teaches}`, x + 8, 38, PAL.crtDim)
+
+    if (onTerms) {
+      // every word/command in this challenge: what it does + why it is named that
+      const lines = this.termLines()
+      const visible = this.termVisibleLines()
+      let y = 52
+      for (const line of lines.slice(this.termScroll, this.termScroll + visible)) {
+        drawText(ctx, line.text, x + 8, y, line.color)
+        y += 9
+      }
+      const hasMore = this.termScroll + visible < lines.length
+      const canUp = this.termScroll > 0
+      const scrollHint = canUp && hasMore ? 'UP/DOWN: SCROLL' : hasMore ? 'DOWN: MORE' : canUp ? 'UP: BACK' : ''
+      drawText(ctx, `${scrollHint}${scrollHint ? '    ' : ''}<-/->: HINTS    X: BACK TO CODE`, x + 8, VIEW_H - 24, PAL.amber)
+      return
+    }
 
     let y = 52
     for (let i = 0; i < this.hintLevel; i++) {
@@ -452,8 +514,8 @@ export class EditorScene implements Scene {
 
     const more = this.hintLevel < this.ch.hints.length
     const prompt = more
-      ? `Z: NEXT HINT (${this.hintLevel}/${this.ch.hints.length})    X: BACK TO CODE`
-      : 'Z: SEE THE WORKED SOLUTION    X: BACK TO CODE'
+      ? `Z: NEXT HINT (${this.hintLevel}/${this.ch.hints.length})    <-/->: GLOSSARY    X: BACK`
+      : 'Z: SEE THE WORKED SOLUTION    <-/->: GLOSSARY    X: BACK'
     drawText(ctx, prompt, x + 8, VIEW_H - 24, PAL.amber)
     if (!more) {
       drawText(ctx, 'You have seen every hint. Try once more before revealing the answer.', x + 8, VIEW_H - 34, PAL.gray3)

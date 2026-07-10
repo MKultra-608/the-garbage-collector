@@ -617,5 +617,132 @@ export const CLERK: PixelArt = {
   ],
 }
 
+// ------------------------------------------------------------- Floor 3
+// Copypasta — the same photocopied page, pasted into one fused stack.
+// Headless: a torso of duplicated paper. (Lore: write it twice, it breeds.)
+export const COPYPASTA: PixelArt = {
+  name: 'copypasta',
+  legend: { k: 'black', p: 'paper', d: 'paperDim', i: 'gray1' },
+  rows: [
+    '........................',
+    '........................',
+    '....kkkkkkkkkkkkkk......',
+    '...kppppppppppppppk.....',
+    '...kpiipiipiippiipk.....',
+    '...kppppppppppppppk.....',
+    '..kdppppppppppppppdk....',
+    '..kpiipiipiippiipipk....',
+    '..kppppppppppppppppk....',
+    '.kdppppppppppppppppdk...',
+    '.kpiipiippiipiipiippk...',
+    '.kppppppppppppppppppk...',
+    '.kdppppppppppppppppdk...',
+    '.kpiipiipiippiipiippk...',
+    '.kppppppppppppppppppk...',
+    '..kdppppppppppppppdk....',
+    '..kpiipiippiipiipipk....',
+    '..kppppppppppppppppk....',
+    '...kdppppppppppppdk.....',
+    '...kpiipiipiippiipk.....',
+    '...kppppppppppppppk.....',
+    '....kkkkkkkkkkkkkk......',
+    '........................',
+    '........................',
+  ],
+}
+
+// Scope Creep — an ooze that refuses to stay inside its cubicle partition.
+// Headless: a blob engulfing a fabric half-wall.
+export const SCOPE_CREEP: PixelArt = {
+  name: 'scopecreep',
+  legend: { k: 'black', o: 'ooze', z: 'oozeDim', g: 'gray2', h: 'gray3' },
+  rows: [
+    '........................',
+    '........................',
+    '.........oooo...........',
+    '.......oooooooo.........',
+    '......oozooooozoo.......',
+    '......oooozzoooooo......',
+    '.....oooozoooozooo......',
+    '.....ooooooooooooo......',
+    '....koooozooozoooook....',
+    '....khhooooooooohhk.....',
+    '....khhhooooooohhhk.....',
+    '....kgghhoooohhggk......',
+    '....kgggghhhhggggk......',
+    '....kggggggggggggk......',
+    '....kggggggggggggk......',
+    '....kggggggggggggk......',
+    '....kggggggggggggk......',
+    '...kzoogggggggoozk......',
+    '...oozoogggggoozoo......',
+    '..oozzooooooooozzoo.....',
+    '..ooooooooooooooooo.....',
+    '...ooo..oooo...ooo......',
+    '........................',
+    '........................',
+  ],
+}
+
+// STACK OVERFLOW — floor 3 boss. A tower of letter trays that keeps stacking
+// itself; every layer juts further out, and the top has begun to tip.
+// Headless: it is all trays, no head. Loose pages orbit the summit.
+export const STACK_OVERFLOW: PixelArt = {
+  name: 'stackoverflow',
+  legend: { k: 'black', g: 'gray2', h: 'gray3', l: 'gray4', p: 'paper', a: 'amber' },
+  rows: [
+    '........p....p..........',
+    '......kkkkkkkkkk..p.....',
+    '.....kllapplllllk.......',
+    '.....kllllllllllk.......',
+    '......khhhhhhhhhhk......',
+    '......khpphhhhpphk......',
+    '.....khhhhhhhhhhhk......',
+    '....kgggggggggggk.......',
+    '....kgppggggggppk.......',
+    '.....kggggggggggk.......',
+    '.....khhhhhhhhhhk.......',
+    '....khhpphhhhpphk.......',
+    '....khhhhhhhhhhhk.......',
+    '...kggggggggggggk.......',
+    '...kgggppgggppggk.......',
+    '....kggggggggggggk......',
+    '....khhhhhhhhhhhhk......',
+    '...khhhhpphhpphhhk......',
+    '...khhhhhhhhhhhhhk......',
+    '..kgggggggggggggggk.....',
+    '..kggggpppppppggggk.....',
+    '..kgggggggggggggggk.....',
+    '..kkkkkkkkkkkkkkkkk.....',
+    '........................',
+  ],
+}
+
+// ------------------------------------------------------------- Floor 3 NPC
+// Temp — a masked office temp who never got a permanent desk. Full-coverage
+// mask (rule 2), lanyard with a blank badge, short-sleeve shirt.
+export const TEMP: PixelArt = {
+  name: 'temp',
+  legend: { k: 'black', m: 'mask', w: 'white', y: 'amber', g: 'glove', h: 'gray3' },
+  rows: [
+    '................',
+    '.....kkkkkk.....',
+    '....kmmmmmmk....',
+    '...kmmmmmmmmk...',
+    '...kmmmmmmmmk...',
+    '...kmmmmmmmmk...',
+    '....kmmmmmmk....',
+    '....kwwwwwwk....',
+    '...kwwyywwwwk...',
+    '..kgkwwyywwkgk..',
+    '..kk.kwwwwk.kk..',
+    '....kww..wwk....',
+    '....kww..wwk....',
+    '....khh..hhk....',
+    '.....kk..kk.....',
+    '................',
+  ],
+}
+
 /** Small trash-bag glyph used on the title screen. */
 export const BAG_ICON: PixelArt = TRASH_PILE

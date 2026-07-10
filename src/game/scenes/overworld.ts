@@ -4,7 +4,7 @@ import { K } from '../../engine/input.ts'
 import { drawText, drawPanel } from '../../ui/text.ts'
 import { PAL } from '../../art/palette.ts'
 import { TILES, TILE } from '../../art/tiles.ts'
-import { JANITOR, PRAM, COURIER, CLERK, TRASH_PILE, drawArt } from '../../art/sprites.ts'
+import { JANITOR, PRAM, COURIER, CLERK, TEMP, TRASH_PILE, drawArt } from '../../art/sprites.ts'
 import type { PixelArt } from '../../art/sprites.ts'
 import type { GameState, Facing } from '../state.ts'
 import { MAPS, INTRO_LINES, FLOORS, IS_DEMO, type EntityDef, type MapDef } from '../data/maps.ts'
@@ -18,7 +18,7 @@ import { ElevatorScene } from './elevator.ts'
 import { saveGame } from '../../engine/save.ts'
 
 /** NPC sprite by name (all masked; hard art rule). */
-const NPC_SPRITE: Record<string, PixelArt> = { PRAM, COURIER, CLERK }
+const NPC_SPRITE: Record<string, PixelArt> = { PRAM, COURIER, CLERK, TEMP }
 
 const MOVE_TIME = 0.16 // seconds per tile, Pokemon-ish walk speed
 
@@ -49,6 +49,9 @@ export class OverworldScene implements Scene {
     private gs: GameState,
   ) {
     this.map = MAPS[gs.map] ?? MAPS.floor0
+    // every floor has its own white-noise room tone (see engine/audio.ts)
+    const floorIdx = FLOORS.findIndex((f) => f.id === this.map.id)
+    eng.audio.setFloorAmbience(floorIdx >= 0 ? floorIdx : 0)
     // debug hooks for verification and future tooling (documented in CLAUDE.md)
     const w = window as unknown as { __gc?: Record<string, unknown> }
     w.__gc = {

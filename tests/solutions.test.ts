@@ -7,6 +7,7 @@
  * Run with:  npm test
  */
 import { CHALLENGES } from '../src/game/data/challenges.ts'
+import { GLOSSARY } from '../src/game/data/glossary.ts'
 import { validate } from '../src/game/code/validator.ts'
 import { newGame } from '../src/game/state.ts'
 import { isFloorCleared, tryUnlockNextFloor, challengesForFloor } from '../src/game/progression.ts'
@@ -26,6 +27,10 @@ for (const ch of CHALLENGES) {
   check(!!ch.teaches, `${ch.id}: has a "teaches" concept label`)
   check(Array.isArray(ch.hints) && ch.hints.length >= 2, `${ch.id}: has at least 2 escalating hints`)
   check(!!ch.solution, `${ch.id}: has a worked solution`)
+  // Every word/command must be defined in the glossary (with why it is named that).
+  check(Array.isArray(ch.terms) && ch.terms.length >= 3, `${ch.id}: has at least 3 glossary terms`)
+  const badKeys = ch.terms.filter((k) => !GLOSSARY[k])
+  check(badKeys.length === 0, `${ch.id}: every glossary key exists${badKeys.length ? ` (missing: ${badKeys.join(', ')})` : ''}`)
 
   // The worked solution shown to the player must actually pass the grader.
   const res = validate(ch, ch.solution)
@@ -66,6 +71,13 @@ for (const ch of challengesForFloor('floor2')) gs.flags[ch.doneFlag] = true
 check(!isFloorCleared(gs, 'floor2'), 'floor2 is NOT cleared while OFF-BY-ONE still stands')
 gs.flags['f2-boss'] = true
 check(isFloorCleared(gs, 'floor2'), 'floor2 clears once challenges done AND boss defeated')
+check(tryUnlockNextFloor(gs, 'floor2')?.id === 'floor3', 'clearing floor2 unlocks floor3')
+
+check(challengesForFloor('floor3').length === 5, 'floor3 carries five challenges (Labs 6-11)')
+for (const ch of challengesForFloor('floor3')) gs.flags[ch.doneFlag] = true
+check(!isFloorCleared(gs, 'floor3'), 'floor3 is NOT cleared while STACK OVERFLOW still stands')
+gs.flags['f3-boss'] = true
+check(isFloorCleared(gs, 'floor3'), 'floor3 clears once challenges done AND boss defeated')
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed`)

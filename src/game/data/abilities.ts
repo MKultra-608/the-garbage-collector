@@ -88,6 +88,16 @@ export const ABILITIES: Record<string, Ability> = {
     hitWord: 'iteration',
     color: PAL.cyan,
   },
+  subroutine: {
+    id: 'subroutine',
+    name: 'Subroutine',
+    sig: 'int clean(int mess); // reusable',
+    desc: 'Call the routine you wrote once and trust: a single heavy, well-factored strike.',
+    cost: 4,
+    kind: 'attack',
+    power: [10, 14],
+    color: PAL.amber,
+  },
   scan: {
     id: 'scan',
     name: 'Scan',
