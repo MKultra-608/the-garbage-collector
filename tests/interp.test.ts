@@ -205,6 +205,36 @@ expectError('needs more input', H + 'int main() { int x; cin >> x; }', 'more inp
 
 expectError('unterminated string', H + 'int main() { cout << "oops; }', 'closing')
 
+// A char literal that LOOKS like an operator must stay a value: `case '-':`
+// is a label, not a negation (bit the floor-1 calculator challenge).
+expectOut(
+  'switch on operator-symbol chars (calculator)',
+  H +
+    "int main() { char op; int a; int b; cin >> op >> a >> b; switch (op) { case '+': cout << a + b; break; case '-': cout << a - b; break; case '*': cout << a * b; break; case '/': cout << a / b; break; default: cout << \"ERR\"; } }",
+  '5',
+  '- 9 4',
+)
+
+expectOut('char literal + in an expression prints as char', H + "int main() { char c = '+'; cout << c; }", '+')
+
+// ---- const (floor 0 curriculum: Lab-2-style constants) ----
+
+expectOut('const declare and use', H + 'int main() { const int FACES = 6; cout << FACES * 2; }', '12')
+
+expectOut(
+  'const in an expression with a variable',
+  H + 'int main() { const int FACES = 6; int side = 5; cout << FACES * side * side; }',
+  '150',
+)
+
+expectError('assigning to a const', H + 'int main() { const int X = 1; X = 2; }', 'const')
+
+expectError('incrementing a const', H + 'int main() { const int X = 1; X++; }', 'const')
+
+expectError('const must be initialized', H + 'int main() { const int X; cout << X; }', 'initialized')
+
+expectError('cin into a const', H + 'int main() { const int X = 1; cin >> X; }', 'const')
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed`)
   process.exit(1)

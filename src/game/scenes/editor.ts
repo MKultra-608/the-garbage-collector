@@ -299,10 +299,21 @@ export class EditorScene implements Scene {
       const label = `TEACHES: ${this.ch.teaches}`
       drawText(ctx, label, VIEW_W - 8 - textWidth(label), 7, PAL.crtDim)
     }
+    // The TASK paragraph must never be pushed off the 5-line panel (rule 7:
+    // nobody gets stuck). If the brief is long, drop teaching lines from the
+    // top and keep the tail, which by convention holds the TASK.
     const briefLines: string[] = []
     for (const para of this.ch.brief) briefLines.push(...wrapText(para, VIEW_W - 20))
-    briefLines.slice(0, 5).forEach((line, i) => {
-      drawText(ctx, line, 8, 17 + i * 8, line.startsWith('TASK:') ? PAL.amber : PAL.gray4)
+    const taskIdx = briefLines.findIndex((l) => l.startsWith('TASK:'))
+    let shown = briefLines
+    if (briefLines.length > 5 && taskIdx >= 0) {
+      const task = briefLines.slice(taskIdx)
+      shown = [...briefLines.slice(0, Math.max(0, 5 - task.length)), ...task]
+    }
+    let amber = false
+    shown.slice(0, 5).forEach((line, i) => {
+      if (line.startsWith('TASK:')) amber = true
+      drawText(ctx, line, 8, 17 + i * 8, amber ? PAL.amber : PAL.gray4)
     })
 
     // code area

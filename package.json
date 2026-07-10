@@ -13,6 +13,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "build:demo": "node scripts/make-demo.cjs",
+    "build:itch": "node scripts/make-itch-zip.cjs",
     "app:renderer": "node scripts/build-renderer.cjs",
     "start": "npm run app:renderer && electron .",
     "dist": "node scripts/make-icon.cjs && npm run app:renderer && electron-builder --dir && node scripts/make-installer.cjs",

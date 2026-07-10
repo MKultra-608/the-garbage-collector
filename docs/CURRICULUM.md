@@ -16,8 +16,8 @@ Pedagogy rules:
 
 | Floor | Zone | Concepts | Ability unlocked | Boss (concept misused) |
 |---|---|---|---|---|
-| 0 | Sub-basement (DONE) | main, cout, variables, int/string, arithmetic, if/else | Flush, Increment, Branch Guard | — (elevator gate) |
-| 1 | Mailroom | cin, strings, comparison, switch | `Switch Case` (multi-hit that picks per enemy) | MISLABEL — a package that lies about its type |
+| 0 | Sub-basement (DONE) | main, cout/endl, variables, const, arithmetic (/ %), relational & logical ops | Flush, Increment, Branch Guard | — (elevator gate) |
+| 1 | Mailroom | cin, if/else-if ladder, switch/case/default, char, a first whole program | `Switch Case` (multi-hit that picks per enemy) | MISLABEL — a package that lies about its type |
 | 2 | Archives | while, for, nested loops, accumulators | `Loop Lash` (repeats X times, X = loop the player wrote) | OFF-BY-ONE — attacks on i <= n, one hit too many |
 | 3 | Cubicle Maze | functions, parameters, return, scope | `Subroutine` (store a combo, replay it) | STACK OVERFLOW — recursion without a base case |
 | 4 | IT Department | arrays, vectors, indexing, iteration | `Batch Job` (hit all enemies — first multi-target) | SEGFAULT — attacks index[-1], punishable when it whiffs |
@@ -29,17 +29,22 @@ Pedagogy rules:
 
 ## Chapter 0 (implemented) — challenge list
 
-1. FIRST SHIFT — hello world, cout, semicolons → Flush
-2. SUPPLY COUNT — int variables, arithmetic, no hardcoding → Increment
-3. LABEL MAKER — std::string, chained << → +2 max RAM
-4. KEYCARD CHECK — if/else with comparison, tested on 3 inputs → Branch Guard
+Remade 2026-07-10 around a C-fundamentals lab course (CS1160 Labs 1–2),
+translated into the game's real-C++ dialect (cout/cin, not printf/scanf).
+
+1. FIRST SHIFT — hello world, cout, semicolons, endl/two lines → Flush
+2. CRATE MATH — variables, const, arithmetic (cube volume + surface) → Increment
+3. LOAD BALANCE — int division truncates + % remainder, chained << → +2 max RAM
+4. GATE LOGIC — relational ops as bools (print 1/0), && || ! → Branch Guard
 
 ## Chapter 1 (implemented) — challenge list
 
-1. INTAKE — cin reads a value, print it back (no hardcoding) → +2 max RAM
-2. SIGNATURE CHECK — string == comparison + if/else → +2 max RAM
-3. SORTING CODE — switch/case/default on an int → Switch Case
-4. MISLABELED — cin + switch on a char (boss prep) → +3 max RAM
+Remade 2026-07-10 around CS1160 Lab 3 (control statements).
+
+1. INTAKE — cin reads a value, print it back labeled (no hardcoding) → +2 max RAM
+2. CLIMATE CONTROL — if / else-if ladder (temperature classification) → +2 max RAM
+3. SORTING CODE — switch/case/break/default on an int (4 routes) → Switch Case
+4. POSTAGE CALC — calculator: cin >> op >> a >> b + switch on char (boss prep) → +3 max RAM
    Boss: MISLABEL, weak to Switch Case (weakness revealed by Scan).
 
 ## Chapter 2 (implemented) — challenge list
@@ -53,6 +58,8 @@ Pedagogy rules:
 
 ## Interpreter support needed per floor
 
+- F0: `const` declarations — DONE (must be initialized; assignment/++/cin into
+  a const are teachable errors; see interp.ts + interp.test.ts).
 - F1: `switch/case/default` statement — DONE (fall-through, break, default,
   char/int subjects; see interp.ts + interp.test.ts).
 - F2: loops — DONE (while/for/break/continue already supported; challenge

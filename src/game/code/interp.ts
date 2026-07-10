@@ -160,6 +160,8 @@ type CppType = 'int' | 'double' | 'bool' | 'char' | 'string'
 interface Value {
   t: CppType
   v: number | boolean | string
+  /** Declared const — reassignment is a (teachable) error. */
+  ro?: boolean
 }
 
 const TYPE_WORDS = ['int', 'double', 'float', 'bool', 'char', 'string', 'long']
@@ -395,7 +397,7 @@ class Interp {
           this.cinStmt()
           return undefined
       }
-      if (TYPE_WORDS.includes(t.v)) {
+      if (t.v === 'const' || TYPE_WORDS.includes(t.v)) {
         this.declStmt()
         return undefined
       }
@@ -406,6 +408,15 @@ class Interp {
   }
 
   private declStmt(): void {
+    let ro = false
+    if (this.peek()?.v === 'const') {
+      this.next()
+      ro = true
+      const after = this.peek()
+      if (!after || after.t !== 'id' || !TYPE_WORDS.includes(after.v)) {
+        throw new CppError("'const' needs a type after it, like: const int SIZE = 10;", after?.line ?? this.lastLine())
+      }
+    }
     const typeTok = this.next()
     let type = typeTok.v as CppType | 'float' | 'long'
     if (type === 'float') type = 'double'
@@ -418,6 +429,9 @@ class Interp {
         this.next()
         val = this.coerce(this.expression(), type, nameTok.line)
       } else {
+        if (ro) {
+          throw new CppError(`a const variable must be initialized: const ${type} ${nameTok.v} = ...;`, nameTok.line)
+        }
         // uninitialized — C++ would give you garbage; we give you the lesson instead
         val =
           type === 'string' ? { t: 'string', v: '' }
@@ -425,6 +439,7 @@ class Interp {
           : type === 'bool' ? { t: 'bool', v: false }
           : { t: type, v: 0 }
       }
+      if (ro) val = { ...val, ro: true }
       this.declare(nameTok.v, val, nameTok.line)
       if (this.peek()?.v === ',') {
         this.next()
@@ -700,6 +715,7 @@ class Interp {
       const nameTok = this.next()
       if (nameTok.t !== 'id') throw new CppError('cin needs a variable to read into', nameTok.line)
       const target = this.lookup(nameTok.v, nameTok.line)
+      if (target.ro) throw new CppError(`'${nameTok.v}' is const — cin cannot overwrite it`, nameTok.line)
       const word = this.stdin.shift()
       if (word === undefined) {
         throw new CppError('the program asked for more input than was provided', nameTok.line)
@@ -714,16 +730,29 @@ class Interp {
   }
 
   // -- expressions (precedence climbing)
+
+  /**
+   * True when the upcoming token is the OPERATOR `v`. Checking the token type
+   * matters: a char literal like '+' has the same text as the operator, and
+   * must never be treated as one (e.g. `case '-':` is not a negation).
+   */
+  private opIs(...ops: string[]): boolean {
+    const t = this.peek()
+    return t?.t === 'op' && ops.includes(t.v)
+  }
+
   private expression(): Value {
     return this.assign()
   }
 
   private assign(): Value {
     const t = this.peek()
-    if (t?.t === 'id' && ['=', '+=', '-=', '*=', '/=', '%='].includes(this.peek(1)?.v ?? '')) {
+    const t1 = this.peek(1)
+    if (t?.t === 'id' && t1?.t === 'op' && ['=', '+=', '-=', '*=', '/=', '%='].includes(t1.v)) {
       const name = this.next().v
       const op = this.next().v
       const target = this.lookup(name, t.line)
+      if (target.ro) throw new CppError(`'${name}' is const — its value cannot be changed`, t.line)
       const rhs = this.assign()
       if (op === '=') {
         const nv = this.coerce(rhs, target.t, t.line)
@@ -739,7 +768,7 @@ class Interp {
 
   private or(): Value {
     let l = this.and()
-    while (this.peek()?.v === '||') {
+    while (this.opIs('||')) {
       this.next()
       const r = this.and()
       l = { t: 'bool', v: asNum(l) !== 0 || asNum(r) !== 0 }
@@ -749,7 +778,7 @@ class Interp {
 
   private and(): Value {
     let l = this.equality()
-    while (this.peek()?.v === '&&') {
+    while (this.opIs('&&')) {
       this.next()
       const r = this.equality()
       l = { t: 'bool', v: asNum(l) !== 0 && asNum(r) !== 0 }
@@ -759,7 +788,7 @@ class Interp {
 
   private equality(): Value {
     let l = this.relational()
-    while (this.peek()?.v === '==' || this.peek()?.v === '!=') {
+    while (this.opIs('==', '!=')) {
       const op = this.next().v
       const r = this.relational()
       const eq = l.t === 'string' || r.t === 'string' ? l.v === r.v : asNum(l) === asNum(r)
@@ -770,7 +799,7 @@ class Interp {
 
   private relational(): Value {
     let l = this.additive()
-    while (['<', '>', '<=', '>='].includes(this.peek()?.v ?? '')) {
+    while (this.opIs('<', '>', '<=', '>=')) {
       const opTok = this.next()
       const r = this.additive()
       let res: boolean
@@ -790,7 +819,7 @@ class Interp {
 
   private additive(): Value {
     let l = this.multiplicative()
-    while (this.peek()?.v === '+' || this.peek()?.v === '-') {
+    while (this.opIs('+', '-')) {
       const opTok = this.next()
       const r = this.multiplicative()
       l = this.binOp(opTok.v, l, r, opTok.line)
@@ -800,7 +829,7 @@ class Interp {
 
   private multiplicative(): Value {
     let l = this.unary()
-    while (['*', '/', '%'].includes(this.peek()?.v ?? '')) {
+    while (this.opIs('*', '/', '%')) {
       const opTok = this.next()
       const r = this.unary()
       l = this.binOp(opTok.v, l, r, opTok.line)
@@ -842,24 +871,25 @@ class Interp {
 
   private unary(): Value {
     const t = this.peek()
-    if (t?.v === '-') {
+    if (this.opIs('-')) {
       this.next()
       const v = this.unary()
       return v.t === 'double' ? { t: 'double', v: -asNum(v) } : { t: 'int', v: -asNum(v) }
     }
-    if (t?.v === '+') {
+    if (this.opIs('+')) {
       this.next()
       return this.unary()
     }
-    if (t?.v === '!') {
+    if (this.opIs('!')) {
       this.next()
       return { t: 'bool', v: asNum(this.unary()) === 0 }
     }
-    if (t?.v === '++' || t?.v === '--') {
+    if (t && this.opIs('++', '--')) {
       this.next()
       const nameTok = this.next()
       if (nameTok.t !== 'id') throw new CppError(`'${t.v}' needs a variable`, t.line)
       const target = this.lookup(nameTok.v, nameTok.line)
+      if (target.ro) throw new CppError(`'${nameTok.v}' is const — its value cannot be changed`, t.line)
       if (!isNumeric(target)) throw new CppError(`cannot ${t.v === '++' ? 'increment' : 'decrement'} a ${target.t}`, t.line)
       target.v = this.stepValue(target, t.v === '++' ? 1 : -1)
       return { ...target }
@@ -878,9 +908,10 @@ class Interp {
   private postfix(): Value {
     const v = this.primary()
     const t = this.peek()
-    if ((t?.v === '++' || t?.v === '--') && v.ref) {
+    if (this.opIs('++', '--') && t && v.ref) {
       this.next()
       const old = { t: v.ref.t, v: v.ref.v }
+      if (v.ref.ro) throw new CppError(`it is const — its value cannot be changed`, t.line)
       if (!isNumeric(v.ref)) throw new CppError(`cannot ${t.v === '++' ? 'increment' : 'decrement'} a ${v.ref.t}`, t.line)
       v.ref.v = this.stepValue(v.ref, t.v === '++' ? 1 : -1)
       return old
