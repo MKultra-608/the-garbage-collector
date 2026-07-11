@@ -73,7 +73,8 @@ gs.flags['f2-boss'] = true
 check(isFloorCleared(gs, 'floor2'), 'floor2 clears once challenges done AND boss defeated')
 check(tryUnlockNextFloor(gs, 'floor2')?.id === 'floor3', 'clearing floor2 unlocks floor3')
 
-check(challengesForFloor('floor3').length === 5, 'floor3 carries five challenges (Labs 6-11)')
+check(challengesForFloor('floor2').length === 5, 'floor2 carries five challenges (Labs 4-5, incl. do-while)')
+check(challengesForFloor('floor3').length === 6, 'floor3 carries six challenges (Labs 6-11, incl. recursion)')
 for (const ch of challengesForFloor('floor3')) gs.flags[ch.doneFlag] = true
 check(!isFloorCleared(gs, 'floor3'), 'floor3 is NOT cleared while STACK OVERFLOW still stands')
 gs.flags['f3-boss'] = true

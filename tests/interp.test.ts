@@ -477,6 +477,39 @@ expectOut(
   '2.00',
 )
 
+// ---- do-while (Lab 4: the loop that always runs at least once) ----
+
+expectOut(
+  'do-while counts down',
+  C + 'int main() { int n = 3; do { printf("%d ", n); n--; } while (n > 0); }',
+  '3 2 1 ',
+)
+
+expectOut(
+  'do-while runs once even when the condition starts false',
+  C + 'int main() { int n = 0; do { printf("%d ", n); n--; } while (n > 0); }',
+  '0 ',
+)
+
+expectOut(
+  'do-while echo until negative (lab example shape)',
+  C + 'int main() { int x; do { scanf("%d", &x); printf("%d\\n", x); } while (x >= 0); }',
+  '4\n7\n-1\n',
+  '4 7 -1',
+)
+
+expectOut(
+  'break leaves a do-while',
+  C + 'int main() { int i = 0; do { i++; if (i == 3) break; printf("%d ", i); } while (i < 10); printf("done"); }',
+  '1 2 done',
+)
+
+expectError(
+  'do without its while tail',
+  C + 'int main() { int n = 1; do { n--; } printf("%d", n); }',
+  'while',
+)
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed`)
   process.exit(1)

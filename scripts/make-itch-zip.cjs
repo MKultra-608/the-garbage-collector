@@ -18,11 +18,10 @@ const path = require('path')
 const root = path.resolve(__dirname, '..')
 const outDir = path.join(root, 'dist-demo')
 
-console.log('building itch demo (GC_DEMO=1, floors capped at 1)...')
+console.log('building itch bundle (full game, all 11 labs)...')
 execSync('npx vite build --outDir dist-demo', {
   cwd: root,
   stdio: 'inherit',
-  env: { ...process.env, GC_DEMO: '1' },
 })
 
 // Collect entries as { name (forward-slash, archive-relative), data }.

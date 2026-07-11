@@ -2,7 +2,7 @@
   "name": "the-garbage-collector",
   "productName": "The Garbage Collector",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A silent pixel-art RPG that teaches real C (CS1160-style) — four floors, Labs 1-11.",
   "author": "MKultra-608",
   "license": "MIT",

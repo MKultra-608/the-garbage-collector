@@ -1,7 +1,7 @@
 /**
- * Builds the public demo and folds it into ONE self-contained HTML file that
- * runs by double-click (no server, no internet). Floors are capped at Floor 1
- * via GC_DEMO=1 (see vite.config.ts / data/maps.ts).
+ * Builds the public browser build and folds it into ONE self-contained HTML
+ * file that runs by double-click (no server, no internet). It ships the FULL
+ * game — all four floors, all 11 labs — same as the desktop build.
  *
  *   npm run build:demo   ->   the-garbage-collector-demo.html
  *
@@ -18,11 +18,10 @@ const path = require('path')
 const root = path.resolve(__dirname, '..')
 const outDir = path.join(root, 'dist-demo')
 
-console.log('building demo (GC_DEMO=1, floors capped at 1)...')
+console.log('building browser build (full game, all 11 labs)...')
 execSync('npx vite build --outDir dist-demo', {
   cwd: root,
   stdio: 'inherit',
-  env: { ...process.env, GC_DEMO: '1' },
 })
 
 const html = fs.readFileSync(path.join(outDir, 'index.html'), 'utf8')

@@ -367,6 +367,38 @@ export const CHALLENGES: Challenge[] = [
     doneFlag: 'done-ch2-while',
   },
   {
+    id: 'ch2-dowhile',
+    title: 'PRESSURE TEST',
+    floor: 2,
+    teaches: 'do-while — runs at least once',
+    brief: [
+      'while checks BEFORE each pass — if the condition starts false, the body never runs. do-while flips that: do { body } while (condition); puts the test at the BOTTOM, so the body always runs at least once.',
+      'The starter reads the pneumatic tube pressure n.',
+      'TASK: Fire the tube with a do-while: print n and a space, shrink n, repeat while n > 0. For 3 print:  3 2 1  — and for 0 it still fires once:  0',
+    ],
+    starter:
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    // do { print n, shrink n } while n > 0\n\n    return 0;\n}\n',
+    hints: [
+      'The body comes first, the test comes last — that is the whole trick of do-while.',
+      'The shape:  do { printf("%d ", n); n--; } while (n > 0);',
+      'Note the semicolon after the condition — do-while ends with  } while (n > 0);',
+    ],
+    solution:
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    do {\n        printf("%d ", n);\n        n--;\n    } while (n > 0);\n    return 0;\n}\n',
+    expect: [
+      { label: 'pressure 3 fires 3 2 1', stdin: '3', output: '3 2 1' },
+      { label: 'pressure 0 STILL fires once (the lesson!)', stdin: '0', output: '0' },
+      { label: 'pressure 1 fires once', stdin: '1', output: '1' },
+    ],
+    require: [
+      { label: 'body first: do {', pattern: /do\s*\{/, hint: 'the body comes first: do { ... }' },
+      { label: 'test at the bottom', pattern: /\}\s*while\s*\(/, hint: 'the test sits at the bottom: } while (n > 0);' },
+    ],
+    terms: ['dowhile', 'whileloop', 'increment', 'scanf'],
+    reward: { ramBonus: 2, scrap: 12 },
+    doneFlag: 'done-ch2-dowhile',
+  },
+  {
     id: 'ch2-for',
     title: 'SHELF SCAN',
     floor: 2,
@@ -553,6 +585,39 @@ export const CHALLENGES: Challenge[] = [
     terms: ['func', 'params', 'returnval', 'recursion', 'printf'],
     reward: { ability: 'subroutine', scrap: 18 },
     doneFlag: 'done-ch3-func',
+  },
+  {
+    id: 'ch3-recur',
+    title: 'SELF CALL',
+    floor: 3,
+    teaches: 'recursion — a base case',
+    brief: [
+      'A function may call ITSELF — recursion. Each call must shrink the problem, and a BASE CASE must stop the chain; without one, calls pile up until the stack overflows. You have heard the thing in the corner office.',
+      'The factorial of n is n * (n-1) * ... * 1, and it is naturally recursive: n! = n * (n-1)!, stopping at 1. (0! is 1 too.)',
+      'TASK: Define int fact(int n): return 1 when n <= 1 — the base case — else n * fact(n - 1). Read an int, print fact of it. 5 makes 120.',
+    ],
+    starter:
+      '#include <stdio.h>\n\n// define int fact(int n) — base case first!\n\nint main() {\n    int x;\n    scanf("%d", &x);\n    // print fact(x) with %d\n\n    return 0;\n}\n',
+    hints: [
+      'Two paths inside fact: the base case that just returns 1, and the call that shrinks n.',
+      'The base case is an if:  if (n <= 1) { return 1; }',
+      'Then the self-call:  return n * fact(n - 1);',
+    ],
+    solution:
+      '#include <stdio.h>\n\nint fact(int n) {\n    if (n <= 1) {\n        return 1;\n    }\n    return n * fact(n - 1);\n}\n\nint main() {\n    int x;\n    scanf("%d", &x);\n    printf("%d", fact(x));\n    return 0;\n}\n',
+    expect: [
+      { label: 'fact(5) = 120', stdin: '5', output: '120' },
+      { label: 'fact(0) = 1 (base case)', stdin: '0', output: '1' },
+      { label: 'fact(7) = 5040', stdin: '7', output: '5040' },
+    ],
+    require: [
+      { label: 'defines fact(...)', pattern: /int\s+fact\s*\(/, hint: 'define it: int fact(int n) { ... }' },
+      { label: 'has a base case', pattern: /if\s*\(/, hint: 'the base case is an if that returns WITHOUT calling again' },
+      { label: 'shrinks toward the base', pattern: /fact\s*\(\s*n\s*-\s*1\s*\)/, hint: 'each call hands down a smaller job: fact(n - 1)' },
+    ],
+    terms: ['recursion', 'func', 'returnval', 'ifelse', 'params'],
+    reward: { ramBonus: 2, scrap: 18 },
+    doneFlag: 'done-ch3-recur',
   },
   {
     id: 'ch3-string',

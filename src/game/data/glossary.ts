@@ -154,6 +154,10 @@ export const GLOSSARY: Record<string, Term> = {
     t: 'while',
     d: 'A loop named like English: repeat the body WHILE the condition stays true. Something inside must move the condition toward false, or the loop never ends.',
   },
+  dowhile: {
+    t: 'do ... while',
+    d: 'A while loop with the test at the BOTTOM: DO the body first, then check WHILE the condition holds. Because the body runs before the first check, a do-while always runs at least once — even when the condition starts false.',
+  },
   forloop: {
     t: 'for',
     d: 'A counting loop: run the body FOR each value of a counter. The header packs the whole plan in one line — for (start; keep-going test; step).',

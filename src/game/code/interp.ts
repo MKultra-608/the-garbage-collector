@@ -509,6 +509,16 @@ class Interp {
       this.skipStatement()
       return
     }
+    if (t.v === 'do') {
+      this.next()
+      this.skipStatement() // body
+      if (this.peek()?.v === 'while') {
+        this.next()
+        this.skipParens()
+        if (this.peek()?.v === ';') this.next()
+      }
+      return
+    }
     while (true) {
       const x = this.peek()
       if (!x) throw new CppError("missing ';'", this.lastLine())
@@ -547,6 +557,8 @@ class Interp {
           return this.ifStmt()
         case 'while':
           return this.whileStmt()
+        case 'do':
+          return this.doWhileStmt()
         case 'for':
           return this.forStmt()
         case 'switch':
@@ -838,6 +850,41 @@ class Interp {
       return this.block()
     }
     return this.statement()
+  }
+
+  /**
+   * do { body } while (condition); — the test sits at the BOTTOM, so the
+   * body always runs at least once (Lab 4's second loop).
+   */
+  private doWhileStmt(): symbol | undefined {
+    const line = this.peek()!.line
+    this.next() // 'do'
+    const bodyStart = this.pos
+    while (true) {
+      this.budget()
+      this.pos = bodyStart
+      const sig = this.execStatement()
+      if (sig === RETURN || sig === BREAK) {
+        // move past `while ( ... ) ;` without evaluating the condition
+        if (this.peek()?.v !== 'while') {
+          throw new CppError("a do loop ends with: } while (condition);", line)
+        }
+        this.next()
+        this.skipParens()
+        this.expect(';', "do ... while needs a ';' after the condition")
+        return sig === RETURN ? RETURN : undefined
+      }
+      // normal completion and `continue` both fall to the bottom test
+      if (this.peek()?.v !== 'while') {
+        throw new CppError("a do loop ends with: } while (condition);", line)
+      }
+      this.next()
+      this.expect('(', 'do ... while needs a condition in parentheses')
+      const cond = asNum(this.expression()) !== 0
+      this.expect(')')
+      this.expect(';', "do ... while needs a ';' after the condition")
+      if (!cond) return undefined
+    }
   }
 
   private whileStmt(): symbol | undefined {
