@@ -1,16 +1,17 @@
 /**
- * A miniature C++ interpreter, sized for the beginner subset the game
- * teaches (floors 0-3): int/double/bool/char/std::string variables, const,
- * arithmetic, cout/cin, if/else, switch, while, for, break/continue,
- * user-defined functions (call-by-value, recursion with a depth limit),
- * 1D/2D arrays with bounds checking, string indexing + .length()/.size(),
- * and structs with fields (value copy semantics).
+ * A miniature C interpreter, sized for the beginner subset the game teaches
+ * (floors 0-3, matching the CS1160 labs): int/double/char variables, const,
+ * arithmetic, printf/scanf/gets/puts (the stdio library), if/else, switch,
+ * while, for, break/continue, user-defined functions (call-by-value,
+ * recursion with a depth limit), 1D/2D arrays with bounds checking, char
+ * arrays with '\0' semantics, and structs with fields (value copy).
+ * C++-style cout/cin/std::string are also accepted for back-compat.
  *
  * It exists so challenges can genuinely RUN the player's program and check
  * its output instead of regex-matching source text. It is intentionally not
- * a full compiler: no pointers, references, classes/methods, or templates
- * yet — those chapters should extend this file (see docs/ROADMAP.md) or
- * swap in a WASM toolchain behind the same `runCpp` signature.
+ * a full compiler: no pointers-beyond-&-in-scanf, no classes or templates —
+ * later chapters should extend this file (see docs/ROADMAP.md) or swap in a
+ * WASM toolchain behind the same `runCpp` signature.
  */
 
 export interface CppResult {
@@ -174,6 +175,12 @@ interface Value {
   /** struct: the struct type's name, and its field Values. */
   sname?: string
   fields?: Map<string, Value>
+  /**
+   * C char array capacity: `char s[20]` stores text with room for 20 chars
+   * (content + '\0'). Reading past the content but inside the capacity gives
+   * '\0' — that terminator is how the labs' string loops know where to stop.
+   */
+  cap?: number
 }
 
 interface FnDef {
@@ -185,7 +192,14 @@ interface FnDef {
 }
 
 interface StructDef {
-  fields: { type: CppType; name: string }[]
+  fields: { type: CppType; name: string; cap?: number }[]
+}
+
+/** Cuts a C string at its '\0' terminator (what printf %s / puts really do). */
+function cstr(v: Value): string {
+  const s = v.v as string
+  const z = s.indexOf('\0')
+  return z === -1 ? s : s.slice(0, z)
 }
 
 const TYPE_WORDS = ['int', 'double', 'float', 'bool', 'char', 'string', 'long']
@@ -218,8 +232,9 @@ function fmt(v: Value): string {
     case 'bool':
       return v.v ? '1' : '0'
     case 'char':
-    case 'string':
       return v.v as string
+    case 'string':
+      return cstr(v)
     case 'double': {
       // approximates std::cout default formatting (6 significant digits)
       const n = v.v as number
@@ -240,7 +255,8 @@ class Interp {
   private pos = 0
   private scopes: Map<string, Value>[] = [new Map()]
   private out = ''
-  private stdin: string[]
+  private inbuf: string
+  private inPos = 0
   private steps = 0
   private fns = new Map<string, FnDef>()
   private structs = new Map<string, StructDef>()
@@ -248,7 +264,32 @@ class Interp {
   private retVal: Value | undefined
 
   constructor(private toks: Tok[], stdin: string) {
-    this.stdin = stdin.trim() === '' ? [] : stdin.trim().split(/\s+/)
+    this.inbuf = stdin
+  }
+
+  // -- input cursor (shared by scanf, gets and cin)
+  /** Skips whitespace, then reads one whitespace-delimited word. */
+  private nextToken(): string | undefined {
+    while (this.inPos < this.inbuf.length && /\s/.test(this.inbuf[this.inPos])) this.inPos++
+    if (this.inPos >= this.inbuf.length) return undefined
+    let s = ''
+    while (this.inPos < this.inbuf.length && !/\s/.test(this.inbuf[this.inPos])) s += this.inbuf[this.inPos++]
+    return s
+  }
+
+  /** Skips whitespace, then reads exactly one character (scanf %c). */
+  private nextChar(): string | undefined {
+    while (this.inPos < this.inbuf.length && /\s/.test(this.inbuf[this.inPos])) this.inPos++
+    return this.inPos < this.inbuf.length ? this.inbuf[this.inPos++] : undefined
+  }
+
+  /** Reads to the end of the line (gets). Leading line breaks are skipped. */
+  private nextLine(): string | undefined {
+    while (this.inPos < this.inbuf.length && /[\r\n]/.test(this.inbuf[this.inPos])) this.inPos++
+    if (this.inPos >= this.inbuf.length) return undefined
+    let s = ''
+    while (this.inPos < this.inbuf.length && this.inbuf[this.inPos] !== '\n') s += this.inbuf[this.inPos++]
+    return s.replace(/\r$/, '')
   }
 
   // -- token helpers
@@ -301,12 +342,19 @@ class Interp {
       // struct Name { type field; ... };
       if (t.t === 'id' && t.v === 'struct' && this.toks[i + 1]?.t === 'id' && this.toks[i + 2]?.v === '{') {
         const name = this.toks[i + 1].v
-        const fields: { type: CppType; name: string }[] = []
+        const fields: { type: CppType; name: string; cap?: number }[] = []
         let j = i + 3
         while (j < n && this.toks[j].v !== '}') {
           const ft = this.toks[j]
           if (ft.t === 'id' && TYPE_WORDS.includes(ft.v) && this.toks[j + 1]?.t === 'id') {
-            fields.push({ type: normType(ft.v), name: this.toks[j + 1].v })
+            let type = normType(ft.v)
+            let cap: number | undefined
+            // `char name[30];` — a C-string field with a capacity
+            if (type === 'char' && this.toks[j + 2]?.v === '[' && this.toks[j + 3]?.t === 'num') {
+              type = 'string'
+              cap = Math.max(2, Math.trunc(parseFloat(this.toks[j + 3].v)))
+            }
+            fields.push({ type, name: this.toks[j + 1].v, cap })
             j += 2
             while (j < n && this.toks[j].v !== ';') j++ // tolerate junk to the ';'
             j++
@@ -382,7 +430,7 @@ class Interp {
       i++
     }
     if (i >= this.toks.length) {
-      throw new CppError('no `int main()` found — every C++ program starts there', 1)
+      throw new CppError('no `int main()` found — every C program starts there', 1)
     }
     this.pos = i + 2
     this.expect('(', 'main needs parentheses: int main()')
@@ -553,7 +601,14 @@ class Interp {
   private zeroStruct(sname: string, line: number): Value {
     const def = this.structs.get(sname)
     if (!def) throw new CppError(`unknown struct '${sname}'`, line)
-    return { t: 'struct', v: 0, sname, fields: new Map(def.fields.map((f) => [f.name, zeroVal(f.type)])) }
+    return {
+      t: 'struct', v: 0, sname,
+      fields: new Map(def.fields.map((f) => {
+        const zv = zeroVal(f.type)
+        if (f.cap !== undefined) zv.cap = f.cap
+        return [f.name, zv]
+      })),
+    }
   }
 
   /** Copies the fields of struct `src` into `dst` in place (value semantics). */
@@ -598,17 +653,25 @@ class Interp {
       }
     }
     const typeTok = this.next()
-    let type = typeTok.v as CppType | 'float' | 'long'
-    if (type === 'float') type = 'double'
-    if (type === 'long') type = 'int'
+    // multi-word C types: `long long int`, `long double`, ...
+    const words = [typeTok.v]
+    while (this.peek()?.t === 'id' && TYPE_WORDS.includes(this.peek()!.v) && this.peek(1)?.t === 'id') {
+      words.push(this.next().v)
+    }
+    const type: CppType =
+      words.includes('double') || words.includes('float') ? 'double'
+      : words.includes('char') ? 'char'
+      : words.includes('bool') ? 'bool'
+      : words.includes('string') ? 'string'
+      : 'int'
     while (true) {
       const nameTok = this.next()
       if (nameTok.t !== 'id') throw new CppError('expected a variable name here', nameTok.line)
       let val: Value
       if (this.peek()?.v === '[') {
-        // array declaration: int a[5]; int a[] = {..}; int m[2][3]; ...
+        // array declaration: int a[5]; int a[] = {..}; int m[2][3]; char s[20];
         if (ro) throw new CppError('const arrays are not supported here — use a plain array', nameTok.line)
-        val = this.arrayDecl(type as CppType, nameTok.line)
+        val = type === 'char' ? this.charArrayDecl(nameTok.line) : this.arrayDecl(type, nameTok.line)
       } else if (this.peek()?.v === '=') {
         this.next()
         val = this.coerce(this.expression(), type, nameTok.line)
@@ -628,6 +691,42 @@ class Interp {
       this.expect(';', `did you forget the ';' after declaring '${nameTok.v}'?`)
       return
     }
+  }
+
+  /**
+   * `char s[20]`, `char s[] = "text"`, `char s[6] = "Hello"` — a C string:
+   * a char array holding text plus its '\0' terminator.
+   */
+  private charArrayDecl(line: number): Value {
+    this.expect('[')
+    let cap = -1
+    if (this.peek()?.v !== ']') {
+      cap = Math.trunc(asNum(this.expression()))
+      if (cap <= 0) throw new CppError('an array size must be a positive number', line)
+    }
+    this.expect(']', "an array size needs its closing ']'")
+    if (this.peek()?.v === '[') {
+      throw new CppError('only 1D char arrays are supported here', line)
+    }
+    let content: string | null = null
+    if (this.peek()?.v === '=') {
+      this.next()
+      const t = this.peek()
+      if (t?.t !== 'str') {
+        throw new CppError('initialize a char array with a string literal: char s[] = "text";', line)
+      }
+      content = this.next().v
+    }
+    if (cap === -1) {
+      if (content === null) {
+        throw new CppError('char s[] needs an init to know its size: char s[] = "text"; (or give a size: char s[20];)', line)
+      }
+      cap = content.length + 1 // the compiler counts the text plus its '\0'
+    }
+    if (content !== null && content.length >= cap) {
+      throw new CppError(`"${content}" needs ${content.length + 1} slots (text + '\\0') but the array only holds ${cap}`, line)
+    }
+    return { t: 'string', v: content ?? '', cap }
   }
 
   /** Parses `[dims]...` (+ optional `= {init}`) after an array's name. */
@@ -932,6 +1031,220 @@ class Interp {
     }
   }
 
+  // ------------------------------------------------------ stdio built-ins
+  // printf / scanf / gets / puts — every one of these is provided by the
+  // standard I/O library that `#include <stdio.h>` copies into the program.
+
+  /** Renders a printf format string with its arguments. */
+  private formatPrintf(fmtStr: string, args: Value[], line: number): string {
+    let out = ''
+    let ai = 0
+    let i = 0
+    while (i < fmtStr.length) {
+      const c = fmtStr[i]
+      if (c !== '%') {
+        out += c
+        i++
+        continue
+      }
+      if (fmtStr[i + 1] === '%') {
+        out += '%'
+        i += 2
+        continue
+      }
+      // %[flags/width/precision/length]conversion  (e.g. %d %.2f %0.2f %lld)
+      let j = i + 1
+      let spec = ''
+      while (j < fmtStr.length && /[0-9.l-]/.test(fmtStr[j])) {
+        spec += fmtStr[j]
+        j++
+      }
+      const conv = fmtStr[j]
+      if (!conv || !'difcsu'.includes(conv)) {
+        throw new CppError(`unknown format specifier '%${spec}${conv ?? ''}' — the labs use %d %f %c %s`, line)
+      }
+      if (ai >= args.length) {
+        throw new CppError(`the format string has more % placeholders than values after the comma`, line)
+      }
+      const v = args[ai++]
+      switch (conv) {
+        case 'd':
+        case 'i':
+        case 'u': {
+          if (v.t === 'string') throw new CppError(`%${conv} prints a number — use %s for text`, line)
+          out += String(Math.trunc(asNum(v)))
+          break
+        }
+        case 'f': {
+          if (v.t === 'string') throw new CppError('%f prints a number — use %s for text', line)
+          const m = spec.match(/\.(\d+)/)
+          const prec = m ? parseInt(m[1], 10) : 6
+          out += asNum(v).toFixed(prec)
+          break
+        }
+        case 'c': {
+          out += v.t === 'char' ? (v.v as string) : String.fromCharCode(Math.trunc(asNum(v)))
+          break
+        }
+        case 's': {
+          if (v.t !== 'string') throw new CppError(`%s prints text — this value is a ${v.t}`, line)
+          out += cstr(v)
+          break
+        }
+      }
+      i = j + 1
+    }
+    if (ai < args.length) {
+      throw new CppError('printf got more values than the format string has % placeholders', line)
+    }
+    return out
+  }
+
+  /** printf / scanf / gets / puts. */
+  private stdioCall(name: string, line: number): Value {
+    this.expect('(', `${name} is called with parentheses: ${name}(...)`)
+
+    if (name === 'printf') {
+      const fmtTok = this.peek()
+      if (fmtTok?.t !== 'str') {
+        throw new CppError('printf starts with a "format string" in double quotes', line)
+      }
+      const fmtStr = this.next().v
+      const args: Value[] = []
+      while (this.peek()?.v === ',') {
+        this.next()
+        args.push(this.expression())
+      }
+      this.expect(')', 'printf(...) needs its closing )')
+      this.out += this.formatPrintf(fmtStr, args, line)
+      return { t: 'int', v: 0 }
+    }
+
+    if (name === 'puts') {
+      const v = this.expression()
+      this.expect(')', 'puts(...) needs its closing )')
+      if (v.t !== 'string') throw new CppError('puts prints a string (a char array)', line)
+      this.out += cstr(v) + '\n'
+      return { t: 'int', v: 0 }
+    }
+
+    if (name === 'gets') {
+      const nameTok = this.peek()
+      if (nameTok?.t !== 'id') throw new CppError('gets needs a char array to read into: gets(name);', line)
+      const tgt = this.tryChainTarget()
+      if (!tgt || !('ref' in tgt) || tgt.ref.t !== 'string') {
+        throw new CppError('gets reads a line into a char array, like: char s[50]; gets(s);', line)
+      }
+      this.expect(')', 'gets(...) needs its closing )')
+      const lineIn = this.nextLine()
+      if (lineIn === undefined) throw new CppError('the program asked for more input than was provided', line)
+      const cap = tgt.ref.cap
+      tgt.ref.v = cap !== undefined ? lineIn.slice(0, cap - 1) : lineIn
+      return { t: 'int', v: 0 }
+    }
+
+    // ---- scanf ----
+    const fmtTok = this.peek()
+    if (fmtTok?.t !== 'str') {
+      throw new CppError('scanf starts with a "format string" in double quotes', line)
+    }
+    const fmtStr = this.next().v
+    // collect the targets after the format string
+    const targets: { amp: boolean; name: string; tgt: ReturnType<Interp['tryChainTarget']> }[] = []
+    while (this.peek()?.v === ',') {
+      this.next()
+      let amp = false
+      if (this.peek()?.t === 'op' && this.peek()!.v === '&') {
+        this.next()
+        amp = true
+      }
+      const nameTok = this.peek()
+      if (nameTok?.t !== 'id') throw new CppError('scanf needs variables to read into', line)
+      const varName = nameTok.v
+      const tgt = this.tryChainTarget()
+      targets.push({ amp, name: varName, tgt })
+    }
+    this.expect(')', 'scanf(...) needs its closing )')
+
+    // walk the format's % conversions and pair them with the targets
+    const specs: string[] = []
+    for (let i = 0; i < fmtStr.length; i++) {
+      if (fmtStr[i] !== '%') continue
+      if (fmtStr[i + 1] === '%') {
+        i++
+        continue
+      }
+      let j = i + 1
+      while (j < fmtStr.length && /[0-9.l]/.test(fmtStr[j])) j++
+      const conv = fmtStr[j]
+      if (!conv || !'difcs'.includes(conv)) {
+        throw new CppError(`unknown scanf specifier '%${fmtStr.slice(i + 1, j + 1)}' — the labs use %d %f %c %s`, line)
+      }
+      specs.push(conv)
+      i = j
+    }
+    if (specs.length !== targets.length) {
+      throw new CppError(
+        `scanf has ${specs.length} % placeholder(s) but ${targets.length} variable(s) after the format string`,
+        line,
+      )
+    }
+
+    for (let k = 0; k < specs.length; k++) {
+      const conv = specs[k]
+      const { amp, name: varName, tgt } = targets[k]
+      if (!tgt) throw new CppError('scanf cannot read into that', line)
+
+      // string-character target (rare): s[i] with %c
+      if ('strOwner' in tgt) {
+        if (conv !== 'c') throw new CppError(`use %c to read a single character into ${varName}[...]`, line)
+        const ch = this.nextChar()
+        if (ch === undefined) throw new CppError('the program asked for more input than was provided', line)
+        let s = tgt.strOwner.v as string
+        if (tgt.idx >= s.length) s = s.padEnd(tgt.idx, '\0')
+        tgt.strOwner.v = s.slice(0, tgt.idx) + ch + s.slice(tgt.idx + 1)
+        continue
+      }
+
+      const target = tgt.ref
+      if (target.ro) throw new CppError(`'${varName}' is const — scanf cannot overwrite it`, line)
+      const isText = target.t === 'string'
+      // THE address lesson: scalars need &, arrays ARE already addresses.
+      if (isText && amp) {
+        throw new CppError(`'${varName}' is an array — its name is already an address, so drop the & : scanf("%s", ${varName})`, line)
+      }
+      if (!isText && !amp) {
+        throw new CppError(
+          `scanf needs the ADDRESS of '${varName}' — write &${varName} (the & means "address of")`,
+          line,
+        )
+      }
+      if (conv === 's') {
+        if (!isText) throw new CppError(`%s reads text — '${varName}' is a ${target.t}`, line)
+        const word = this.nextToken()
+        if (word === undefined) throw new CppError('the program asked for more input than was provided', line)
+        target.v = target.cap !== undefined ? word.slice(0, target.cap - 1) : word
+        continue
+      }
+      if (conv === 'c') {
+        const ch = this.nextChar()
+        if (ch === undefined) throw new CppError('the program asked for more input than was provided', line)
+        if (target.t === 'char') target.v = ch
+        else target.v = ch.charCodeAt(0)
+        continue
+      }
+      // %d %i %f
+      const word = this.nextToken()
+      if (word === undefined) throw new CppError('the program asked for more input than was provided', line)
+      const num = parseFloat(word) || 0
+      if (target.t === 'double') target.v = num
+      else if (target.t === 'bool') target.v = num !== 0
+      else if (target.t === 'char') target.v = String.fromCharCode(Math.trunc(num))
+      else target.v = Math.trunc(num)
+    }
+    return { t: 'int', v: specs.length }
+  }
+
   /** Runs a user-defined function body with its own scope stack. */
   private callFn(name: string, args: Value[], line: number): Value {
     const fn = this.fns.get(name)!
@@ -1006,12 +1319,13 @@ class Interp {
           throw new CppError(`cin cannot read a whole ${tgt.ref.t} — read one element at a time`, nameTok.line)
         }
       }
-      const word = this.stdin.shift()
+      const word = this.nextToken()
       if (word === undefined) {
         throw new CppError('the program asked for more input than was provided', nameTok.line)
       }
       if ('strOwner' in tgt) {
-        const s = tgt.strOwner.v as string
+        let s = tgt.strOwner.v as string
+        if (tgt.idx >= s.length) s = s.padEnd(tgt.idx, '\0')
         tgt.strOwner.v = s.slice(0, tgt.idx) + (word[0] ?? '\0') + s.slice(tgt.idx + 1)
         continue
       }
@@ -1063,7 +1377,8 @@ class Interp {
           if ('strOwner' in tgt) {
             if (opTok.v !== '=') throw new CppError("a string character only supports plain '='", t.line)
             const ch = this.coerce(this.assign(), 'char', t.line)
-            const s = tgt.strOwner.v as string
+            let s = tgt.strOwner.v as string
+            if (tgt.idx >= s.length) s = s.padEnd(tgt.idx, '\0')
             tgt.strOwner.v = s.slice(0, tgt.idx) + (ch.v as string) + s.slice(tgt.idx + 1)
             return { t: 'char', v: ch.v }
           }
@@ -1120,8 +1435,14 @@ class Interp {
         }
         if (cur.t === 'string') {
           const s = cur.v as string
-          if (idx < 0 || idx >= s.length) {
-            throw new CppError(`index ${idx} is past the end of this string (length ${s.length})`, t.line)
+          const limit = cur.cap !== undefined ? cur.cap : s.length + 1
+          if (idx < 0 || idx >= limit) {
+            throw new CppError(
+              cur.cap !== undefined
+                ? `index ${idx} is past the end of this char array (size ${cur.cap})`
+                : `index ${idx} is past the end of this string (length ${s.length})`,
+              t.line,
+            )
           }
           return { strOwner: cur, idx }
         }
@@ -1217,7 +1538,7 @@ class Interp {
       if ((l.t === 'string' || l.t === 'char') && (r.t === 'string' || r.t === 'char')) {
         return { t: 'string', v: (l.v as string) + (r.v as string) }
       }
-      throw new CppError('C++ cannot add a number to a string directly (hint: print them separately)', line)
+      throw new CppError('you cannot add a number to a string directly (hint: print them separately)', line)
     }
     if (!isNumeric(l) || !isNumeric(r)) {
       throw new CppError(`cannot apply '${op}' to these types`, line)
@@ -1259,6 +1580,12 @@ class Interp {
       this.next()
       return { t: 'bool', v: asNum(this.unary()) === 0 }
     }
+    if (this.opIs('&')) {
+      throw new CppError(
+        "'&' takes a variable's ADDRESS — it belongs inside scanf, like scanf(\"%d\", &x)",
+        t!.line,
+      )
+    }
     if (t && this.opIs('++', '--')) {
       this.next()
       const nameTok = this.next()
@@ -1299,10 +1626,19 @@ class Interp {
         }
         if (v.t === 'string') {
           const s = v.v as string
-          if (idx < 0 || idx >= s.length) {
-            throw new CppError(`index ${idx} is past the end of this string (length ${s.length})`, t.line)
+          const cap = v.cap
+          // With a capacity (a C char array), any slot inside it is readable;
+          // past the text you find the '\0' terminator — that is the lesson.
+          const limit = cap !== undefined ? cap : s.length + 1
+          if (idx < 0 || idx >= limit) {
+            throw new CppError(
+              cap !== undefined
+                ? `index ${idx} is past the end of this char array (size ${cap})`
+                : `index ${idx} is past the end of this string (length ${s.length})`,
+              t.line,
+            )
           }
-          v = { t: 'char', v: s[idx] }
+          v = { t: 'char', v: idx < s.length ? s[idx] : '\0' }
           continue
         }
         throw new CppError('only arrays and strings can be indexed with [ ]', t.line)
@@ -1352,6 +1688,10 @@ class Interp {
     if (t.t === 'id') {
       if (t.v === 'true') return { t: 'bool', v: true }
       if (t.v === 'false') return { t: 'bool', v: false }
+      if (this.peek()?.v === '(' && ['printf', 'scanf', 'gets', 'puts'].includes(t.v)) {
+        // the stdio library's I/O functions — the ones #include <stdio.h> provides
+        return this.stdioCall(t.v, t.line)
+      }
       if (this.peek()?.v === '(') {
         // function call
         if (!this.fns.has(t.v)) {
@@ -1377,7 +1717,7 @@ class Interp {
   }
 }
 
-/** Compile & run a beginner C++ program. Never throws. */
+/** Compile & run a beginner C program. Never throws. */
 export function runCpp(code: string, stdin = ''): CppResult {
   try {
     const toks = lex(code)

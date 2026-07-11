@@ -65,7 +65,7 @@ const floor0: MapDef = {
       y: 4,
       name: 'PRAM',
       lines: [
-        'Terminals are in the south alcove, past the desks. The building only respects C++.',
+        'Terminals are in the south alcove, past the desks. The building only respects C.',
         "Learn a line, earn a power. That's the deal the architects left us.",
         "Filter's itchy tonight. Keep yours on anyway. The particulate is... ambitious.",
       ],
@@ -133,7 +133,7 @@ const floor1: MapDef = {
       kind: 'sign',
       x: 14,
       y: 1,
-      text: 'MAILROOM NOTICE: Sorting terminals now teach cin (read what the world gives you) and switch (one branch per label). The back dock is jammed with something that will not declare its type. Do not sign for it.',
+      text: 'MAILROOM NOTICE: Sorting terminals now teach scanf (read what the world gives you) and switch (one branch per label). The back dock is jammed with something that will not declare its type. Do not sign for it.',
     },
     {
       kind: 'npc',
@@ -334,7 +334,7 @@ export const INTRO_LINES: { who?: string; text: string }[] = [
   },
   {
     who: 'PRAM',
-    text: "They teach C++. The building's maintenance language. Learn a line, earn a power. That's how it works down here.",
+    text: "They teach C. The building's maintenance language. Learn a line, earn a power. That's how it works down here.",
   },
   { who: 'PRAM', text: 'Certify on all four terminal exercises and I will call the elevator. And kid — keep the mask on. Always.' },
 ]

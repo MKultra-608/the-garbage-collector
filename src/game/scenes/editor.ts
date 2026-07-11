@@ -12,9 +12,10 @@ import { saveGame } from '../../engine/save.ts'
 const KEYWORDS = new Set([
   'int', 'double', 'float', 'bool', 'char', 'string', 'long', 'if', 'else', 'while', 'for',
   'return', 'break', 'continue', 'using', 'namespace', 'void', 'const', 'true', 'false', 'auto',
-  'switch', 'case', 'default',
+  'switch', 'case', 'default', 'struct',
 ])
-const STREAM_WORDS = new Set(['cout', 'cin', 'endl', 'std', 'main', 'flush'])
+// The stdio library's functions get the same highlight as main.
+const STREAM_WORDS = new Set(['printf', 'scanf', 'gets', 'puts', 'main', 'cout', 'cin', 'endl', 'std', 'flush'])
 
 const MAX_LINES = 40
 const MAX_COL = 120
@@ -23,7 +24,7 @@ const CODE_LINE_H = 8
 const VISIBLE_LINES = 12
 
 /**
- * Full-screen C++ editor at a wall terminal. Takes over the keyboard via
+ * Full-screen C editor at a wall terminal. Takes over the keyboard via
  * input.rawHandler (modal). Ctrl+Enter compiles & grades; passing awards
  * the challenge's reward exactly once (doneFlag guards re-certification).
  */

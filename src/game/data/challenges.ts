@@ -1,7 +1,8 @@
 /**
- * Code challenges — the educational core. Players write REAL C++ at wall
- * terminals; the interpreter (game/code/interp.ts) runs it and the
- * validator grades behavior, not just syntax.
+ * Code challenges — the educational core. Players write REAL C at wall
+ * terminals — the same dialect the CS1160 labs teach (#include <stdio.h>,
+ * printf/scanf, char arrays) — and the interpreter (game/code/interp.ts)
+ * runs it; the validator grades behavior, not just syntax.
  *
  * Design rules for new challenges (see docs/CURRICULUM.md for the full arc):
  *  - `brief` teaches the concept in-fiction, in plain words, BEFORE asking.
@@ -10,6 +11,8 @@
  *    `require` only to force the concept ("must use a loop"), and always
  *    give a `hint` that teaches.
  *  - Every challenge rewards something tangible: an ability, RAM, or scrap.
+ *  - `terms` lists glossary keys (data/glossary.ts) for every word/command
+ *    used — each defines the term and why it is named that.
  */
 export interface Challenge {
   id: string
@@ -51,35 +54,35 @@ export const CHALLENGES: Challenge[] = [
     id: 'ch0-hello',
     title: 'FIRST SHIFT',
     floor: 0,
-    teaches: 'cout & endl — printing lines',
+    teaches: 'printf & \\n — printing',
     brief: [
-      'Every C++ program starts at a function called main. The building only listens to programs that have one.',
-      'Print by streaming to cout with the << arrows. Text goes in "double quotes"; every statement ends with a semicolon ;. Stream endl to end a line and drop to the next.',
+      'Every C program starts at a function called main. The building only listens to programs that have one.',
+      'Printing is done by printf — PRINT Formatted — a function from the stdio library that #include <stdio.h> brings in. Text goes in "double quotes"; \\n inside the quotes ends the line; every statement ends with a semicolon ;',
       'TASK: Print exactly two lines:  NIGHT SHIFT  and under it  MOP READY',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    // line 1: NIGHT SHIFT\n    // line 2: MOP READY\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    // line 1: NIGHT SHIFT\n    // line 2: MOP READY\n\n    return 0;\n}\n',
     hints: [
-      'Two lines means printing twice with a line break between. cout does the printing.',
-      'Stream endl to end the first line:  cout << "NIGHT SHIFT" << endl;',
-      'Then print the second line:  cout << "MOP READY";',
+      'Two lines means a line break between them — that is what \\n inside the quotes does.',
+      'End the first line inside the text:  printf("NIGHT SHIFT\\n");',
+      'Then print the second line:  printf("MOP READY");',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "NIGHT SHIFT" << endl;\n    cout << "MOP READY";\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    printf("NIGHT SHIFT\\n");\n    printf("MOP READY");\n    return 0;\n}\n',
     expect: [{ label: 'prints both lines', output: 'NIGHT SHIFT\nMOP READY' }],
     require: [
       {
-        label: 'uses cout',
-        pattern: /cout\s*<</,
-        hint: 'stream text to cout, like: cout << "NIGHT SHIFT";',
+        label: 'uses printf',
+        pattern: /printf\s*\(/,
+        hint: 'print with the stdio function: printf("NIGHT SHIFT");',
       },
       {
         label: 'ends the first line',
-        pattern: /endl|\\n/,
-        hint: 'drop to the next line with << endl (or a \\n inside the quotes)',
+        pattern: /\\n/,
+        hint: 'drop to the next line with \\n inside the quotes',
       },
     ],
-    terms: ['include', 'usingstd', 'main', 'cout', 'insertion', 'endl', 'quotes', 'semicolon', 'ret0'],
+    terms: ['include', 'main', 'printf', 'escape', 'quotes', 'semicolon', 'ret0'],
     reward: { ability: 'flush', scrap: 5 },
     doneFlag: 'done-ch0-hello',
   },
@@ -87,21 +90,21 @@ export const CHALLENGES: Challenge[] = [
     id: 'ch0-vars',
     title: 'CRATE MATH',
     floor: 0,
-    teaches: 'variables, const & arithmetic',
+    teaches: 'variables, const & %d',
     brief: [
       'A variable is a labeled box: int side = 5; makes a box named side holding the whole number 5. Boxes combine with math operators: side * side is side times side.',
-      'A const box is set once and can never change: const int FACES = 6; — the compiler enforces it. Numbers print with cout like anything else, no quotes.',
+      'A const box is set once and can never change: const int FACES = 6; — the compiler enforces it. To print a number, put a %d placeholder in the format string: printf("%d", side);',
       'TASK: Print the crate volume (side * side * side), then its surface (FACES * side * side), on two lines. Side 5: 125 then 150.',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int side = 5;\n    const int FACES = 6;\n    // line 1: volume  = side * side * side\n    // line 2: surface = FACES * side * side\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int side = 5;\n    const int FACES = 6;\n    // line 1: volume  = side * side * side\n    // line 2: surface = FACES * side * side\n\n    return 0;\n}\n',
     hints: [
-      'Multiply the box by itself: side * side * side is the volume. Each result on its own line.',
-      'First line:  cout << side * side * side << endl;',
-      'The const works like any variable:  cout << FACES * side * side;',
+      'Multiply the box by itself: side * side * side is the volume. %d is where the number lands.',
+      'First line:  printf("%d\\n", side * side * side);',
+      'The const works like any variable:  printf("%d", FACES * side * side);',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int side = 5;\n    const int FACES = 6;\n    cout << side * side * side << endl;\n    cout << FACES * side * side;\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int side = 5;\n    const int FACES = 6;\n    printf("%d\\n", side * side * side);\n    printf("%d", FACES * side * side);\n    return 0;\n}\n',
     expect: [{ label: 'side 5: volume 125, surface 150', output: '125\n150' }],
     variants: [
       {
@@ -117,14 +120,7 @@ export const CHALLENGES: Challenge[] = [
         hint: 'keep the line: const int FACES = 6;',
       },
     ],
-    forbid: [
-      {
-        label: 'computes instead of printing 125',
-        pattern: /<<\s*125/,
-        hint: 'multiply the variables — do not type 125 yourself',
-      },
-    ],
-    terms: ['varword', 'int', 'assignop', 'const', 'arith', 'semicolon'],
+    terms: ['varword', 'int', 'assignop', 'const', 'arith', 'fmtspec'],
     reward: { ability: 'increment', scrap: 5 },
     doneFlag: 'done-ch0-vars',
   },
@@ -135,18 +131,18 @@ export const CHALLENGES: Challenge[] = [
     teaches: 'int division & % remainder',
     brief: [
       'Two more math operators: / divides, and % gives the remainder after division. On whole numbers / truncates: 17 / 5 is 3, and 17 % 5 is the 2 left over.',
-      'Chain << to print several things in one statement: cout << "A: " << x << endl;',
+      'A format string can mix text and placeholders: printf("CARTS: %d\\n", n); prints the label, then the value where the %d sits.',
       'TASK: 17 bags, 5 fit per cart. Print exactly  CARTS: 3  and under it  LEFT: 2  — computed from the variables, never typed in.',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bags = 17;\n    int cart = 5;\n    // CARTS: full carts (bags / cart)\n    // LEFT:  the remainder (bags % cart)\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int bags = 17;\n    int cart = 5;\n    // CARTS: full carts (bags / cart)\n    // LEFT:  the remainder (bags % cart)\n\n    return 0;\n}\n',
     hints: [
       'Full carts is whole-number division. The leftover is the remainder operator %.',
-      'Chain label and math:  cout << "CARTS: " << bags / cart << endl;',
-      'Second line:  cout << "LEFT: " << bags % cart;',
+      'Label and value together:  printf("CARTS: %d\\n", bags / cart);',
+      'Second line:  printf("LEFT: %d", bags % cart);',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bags = 17;\n    int cart = 5;\n    cout << "CARTS: " << bags / cart << endl;\n    cout << "LEFT: " << bags % cart;\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int bags = 17;\n    int cart = 5;\n    printf("CARTS: %d\\n", bags / cart);\n    printf("LEFT: %d", bags % cart);\n    return 0;\n}\n',
     expect: [{ label: '17 bags: 3 carts, 2 left', output: 'CARTS: 3\nLEFT: 2' }],
     variants: [
       {
@@ -158,11 +154,11 @@ export const CHALLENGES: Challenge[] = [
     require: [
       {
         label: 'uses the remainder operator',
-        pattern: /%/,
+        pattern: /bags\s*%\s*cart/,
         hint: 'the leftover is the remainder: bags % cart',
       },
     ],
-    terms: ['arith', 'modulo', 'int', 'insertion', 'endl'],
+    terms: ['arith', 'modulo', 'printf', 'fmtspec', 'escape'],
     reward: { ramBonus: 2, scrap: 5 },
     doneFlag: 'done-ch0-ops',
   },
@@ -172,19 +168,19 @@ export const CHALLENGES: Challenge[] = [
     floor: 0,
     teaches: 'comparisons & logical ops',
     brief: [
-      'A comparison like amps == 6 produces a bool: true or false. cout prints bools as 1 and 0. Compare with == != < <= > >=.',
-      'Combine checks: && is true only when BOTH sides are true; || when EITHER is; ! flips a truth. Wrap each check in ( ) when printing it.',
+      'A comparison like amps == 6 produces a number: 1 when true, 0 when false — C keeps its truth in plain ints. Compare with == != < <= > >=.',
+      'Combine checks: && is true only when BOTH sides are true; || when EITHER is; ! flips a truth. Print a check by handing it to %d.',
       'TASK: Print the four checks listed in the code, one per line. For amps 6, volts 8 the gate reads:  1 0 0 1',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int amps = 6;\n    int volts = 8;\n    // print these, one per line, in ( ):\n    // 1: amps == 6\n    // 2: amps >= 6 && volts < 4\n    // 3: !(volts > amps)\n    // 4: volts >= amps || volts == 7\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int amps = 6;\n    int volts = 8;\n    // print these, one per line, with %d:\n    // 1: amps == 6\n    // 2: amps >= 6 && volts < 4\n    // 3: !(volts > amps)\n    // 4: volts >= amps || volts == 7\n\n    return 0;\n}\n',
     hints: [
-      'Each check is an expression that is already 1 or 0 — print the expression itself.',
-      'Wrap each check in parentheses:  cout << (amps == 6) << endl;',
-      'The combined ones look the same:  cout << (amps >= 6 && volts < 4) << endl;',
+      'Each check is an expression that is already 1 or 0 — hand it to printf as the value.',
+      'The shape:  printf("%d\\n", amps == 6);',
+      'The combined ones look the same:  printf("%d\\n", amps >= 6 && volts < 4);',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int amps = 6;\n    int volts = 8;\n    cout << (amps == 6) << endl;\n    cout << (amps >= 6 && volts < 4) << endl;\n    cout << !(volts > amps) << endl;\n    cout << (volts >= amps || volts == 7);\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int amps = 6;\n    int volts = 8;\n    printf("%d\\n", amps == 6);\n    printf("%d\\n", amps >= 6 && volts < 4);\n    printf("%d\\n", !(volts > amps));\n    printf("%d", volts >= amps || volts == 7);\n    return 0;\n}\n',
     expect: [{ label: 'amps 6, volts 8 reads 1 0 0 1', output: '1\n0\n0\n1' }],
     variants: [
       {
@@ -198,7 +194,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'uses ||', pattern: /\|\|/, hint: 'either-may-hold checks use ||' },
       { label: 'uses !', pattern: /!\s*\(/, hint: 'flip the third check with !( ... )' },
     ],
-    terms: ['bool', 'compare', 'and', 'or', 'not'],
+    terms: ['truth', 'compare', 'and', 'or', 'not'],
     reward: { ability: 'guard', scrap: 10 },
     doneFlag: 'done-ch0-logic',
   },
@@ -208,30 +204,30 @@ export const CHALLENGES: Challenge[] = [
     id: 'ch1-cin',
     title: 'INTAKE',
     floor: 1,
-    teaches: 'cin — reading input',
+    teaches: 'scanf — reading input',
     brief: [
-      'So far your programs knew every value in advance. Real mail changes nightly. cin with the >> arrows reads a value INTO a variable: cin >> count; fills the box named count with whatever arrives.',
-      'The starter already reads an int called count. Your job is to report it back, labeled.',
+      'So far your programs knew every value in advance. Real mail changes nightly. scanf — SCAN Formatted, printf\'s twin from the stdio library — reads what is typed INTO a variable.',
+      'scanf needs the ADDRESS of the box, so you write & in front: scanf("%d", &count); — the & means "address of". The starter already reads an int called count.',
       'TASK: Print exactly:  PARCELS: count   (the number that was read in, not a fixed number).',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int count;\n    cin >> count;\n    // print PARCELS: followed by count\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int count;\n    scanf("%d", &count);\n    // print PARCELS: followed by count\n\n    return 0;\n}\n',
     hints: [
       'The value is already read into count for you. Print a label, then that variable.',
-      'Combine text and a variable with <<:  cout << "PARCELS: " << count;',
-      'Keep the  cin >> count;  line, then add the cout line under it.',
+      'Mix text and a placeholder:  printf("PARCELS: %d", count);',
+      'Keep the  scanf("%d", &count);  line, then add the printf under it.',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int count;\n    cin >> count;\n    cout << "PARCELS: " << count;\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int count;\n    scanf("%d", &count);\n    printf("PARCELS: %d", count);\n    return 0;\n}\n',
     expect: [
       { label: 'reading 5 prints PARCELS: 5', stdin: '5', output: 'PARCELS: 5' },
       { label: 'reading 42 prints PARCELS: 42 (no hardcoding!)', stdin: '42', output: 'PARCELS: 42' },
     ],
     require: [
-      { label: 'reads with cin', pattern: /cin\s*>>/, hint: 'keep the line: cin >> count;' },
-      { label: 'prints with cout', pattern: /cout\s*<</, hint: 'print with: cout << "PARCELS: " << count;' },
+      { label: 'reads with scanf and &', pattern: /scanf\s*\(\s*"%d"\s*,\s*&\s*count\s*\)/, hint: 'keep the line: scanf("%d", &count);' },
+      { label: 'prints with printf', pattern: /printf\s*\(/, hint: 'print with: printf("PARCELS: %d", count);' },
     ],
-    terms: ['cin', 'extraction', 'varword', 'cout', 'insertion'],
+    terms: ['scanf', 'addressof', 'fmtspec', 'printf', 'varword'],
     reward: { ramBonus: 2, scrap: 8 },
     doneFlag: 'done-ch1-cin',
   },
@@ -246,14 +242,14 @@ export const CHALLENGES: Challenge[] = [
       'TASK: The mailroom thermostat reads an int t. Print FROZEN if t <= 0, COLD for 1 to 15, NORMAL for 16 to 30, and HOT above 30.',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int t;\n    cin >> t;\n    // ladder: <= 0 FROZEN, <= 15 COLD,\n    //         <= 30 NORMAL, else HOT\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int t;\n    scanf("%d", &t);\n    // ladder: <= 0 FROZEN, <= 15 COLD,\n    //         <= 30 NORMAL, else HOT\n\n    return 0;\n}\n',
     hints: [
       'Check the coldest band first. Each later rung only runs when every earlier one was false.',
       'The shape:  if (t <= 0) { ... } else if (t <= 15) { ... } else if (t <= 30) { ... } else { ... }',
-      'Each rung prints its word:  else if (t <= 15) { cout << "COLD"; }',
+      'Each rung prints its word:  else if (t <= 15) { printf("COLD"); }',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int t;\n    cin >> t;\n    if (t <= 0) {\n        cout << "FROZEN";\n    } else if (t <= 15) {\n        cout << "COLD";\n    } else if (t <= 30) {\n        cout << "NORMAL";\n    } else {\n        cout << "HOT";\n    }\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int t;\n    scanf("%d", &t);\n    if (t <= 0) {\n        printf("FROZEN");\n    } else if (t <= 15) {\n        printf("COLD");\n    } else if (t <= 30) {\n        printf("NORMAL");\n    } else {\n        printf("HOT");\n    }\n    return 0;\n}\n',
     expect: [
       { label: '-5 is FROZEN', stdin: '-5', output: 'FROZEN' },
       { label: '10 is COLD', stdin: '10', output: 'COLD' },
@@ -264,7 +260,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'chains with else if', pattern: /else\s+if/, hint: 'link the rungs: } else if (t <= 15) {' },
       { label: 'uses an if', pattern: /if\s*\(/, hint: 'start the ladder with if (t <= 0)' },
     ],
-    terms: ['ifelse', 'elseif', 'compare', 'cin', 'extraction'],
+    terms: ['ifelse', 'elseif', 'compare', 'scanf', 'addressof'],
     reward: { ramBonus: 2, scrap: 10 },
     doneFlag: 'done-ch1-ladder',
   },
@@ -279,14 +275,14 @@ export const CHALLENGES: Challenge[] = [
       'TASK: Read int bin. Print PAPER for 1, PLASTIC for 2, METAL for 3, and LANDFILL for anything else. break after every case.',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bin;\n    cin >> bin;\n    switch (bin) {\n        // case 1 PAPER, case 2 PLASTIC,\n        // case 3 METAL, default LANDFILL\n    }\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int bin;\n    scanf("%d", &bin);\n    switch (bin) {\n        // case 1 PAPER, case 2 PLASTIC,\n        // case 3 METAL, default LANDFILL\n    }\n    return 0;\n}\n',
     hints: [
       'Route bin to one of four outputs: PAPER (1), PLASTIC (2), METAL (3), LANDFILL (the rest).',
-      'Each case prints, then breaks:  case 1: cout << "PAPER"; break;',
-      'After the three cases, catch the rest:  default: cout << "LANDFILL";',
+      'Each case prints, then breaks:  case 1: printf("PAPER"); break;',
+      'After the three cases, catch the rest:  default: printf("LANDFILL");',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bin;\n    cin >> bin;\n    switch (bin) {\n        case 1: cout << "PAPER"; break;\n        case 2: cout << "PLASTIC"; break;\n        case 3: cout << "METAL"; break;\n        default: cout << "LANDFILL";\n    }\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int bin;\n    scanf("%d", &bin);\n    switch (bin) {\n        case 1: printf("PAPER"); break;\n        case 2: printf("PLASTIC"); break;\n        case 3: printf("METAL"); break;\n        default: printf("LANDFILL");\n    }\n    return 0;\n}\n',
     expect: [
       { label: 'bin 1 -> PAPER', stdin: '1', output: 'PAPER' },
       { label: 'bin 2 -> PLASTIC', stdin: '2', output: 'PLASTIC' },
@@ -298,7 +294,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'has a default', pattern: /default\s*:/, hint: 'catch the rest with default:' },
       { label: 'breaks each case', pattern: /break\s*;/, hint: 'end each case with break; or it falls through' },
     ],
-    terms: ['switch', 'case', 'break', 'default', 'cin'],
+    terms: ['switch', 'case', 'break', 'default', 'scanf'],
     reward: { ability: 'switchcase', scrap: 12 },
     doneFlag: 'done-ch1-switch',
   },
@@ -306,21 +302,21 @@ export const CHALLENGES: Challenge[] = [
     id: 'ch1-calc',
     title: 'POSTAGE CALC',
     floor: 1,
-    teaches: 'cin + switch + math',
+    teaches: 'scanf %c + switch + math',
     brief: [
       'The postage meter is a tiny calculator: an operation symbol and two numbers go in, one result comes out. This is everything from tonight in one program.',
-      "A char holds one symbol, and switch matches chars too: case '+': — single quotes for single characters. cin chains reads: cin >> op >> a >> b; fills all three in order.",
+      "A char holds one symbol; scanf reads one with %c (a space before it, \" %c\", skips stray line breaks). switch matches chars too: case '+': — single quotes for single characters.",
       "TASK: Read char op and ints a, b. Print the result: a+b for '+', likewise - * and /, or ERR for any other op. Int division: 9 / 2 is 4.",
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    char op;\n    int a;\n    int b;\n    cin >> op >> a >> b;\n    // switch on op: + - * / compute, else ERR\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    char op;\n    int a;\n    int b;\n    scanf(" %c %d %d", &op, &a, &b);\n    // switch on op: + - * / compute, else ERR\n\n    return 0;\n}\n',
     hints: [
       'Route on the operation character; each case prints one computed result, then breaks.',
-      "A math case looks like:  case '+': cout << a + b; break;",
-      'After the four math cases:  default: cout << "ERR";',
+      "A math case looks like:  case '+': printf(\"%d\", a + b); break;",
+      'After the four math cases:  default: printf("ERR");',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    char op;\n    int a;\n    int b;\n    cin >> op >> a >> b;\n    switch (op) {\n        case \'+\': cout << a + b; break;\n        case \'-\': cout << a - b; break;\n        case \'*\': cout << a * b; break;\n        case \'/\': cout << a / b; break;\n        default: cout << "ERR";\n    }\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    char op;\n    int a;\n    int b;\n    scanf(" %c %d %d", &op, &a, &b);\n    switch (op) {\n        case \'+\': printf("%d", a + b); break;\n        case \'-\': printf("%d", a - b); break;\n        case \'*\': printf("%d", a * b); break;\n        case \'/\': printf("%d", a / b); break;\n        default: printf("ERR");\n    }\n    return 0;\n}\n',
     expect: [
       { label: '+ 6 8 -> 14', stdin: '+ 6 8', output: '14' },
       { label: '- 9 4 -> 5', stdin: '- 9 4', output: '5' },
@@ -331,9 +327,9 @@ export const CHALLENGES: Challenge[] = [
     require: [
       { label: 'uses a switch', pattern: /switch\s*\(/, hint: 'route the symbol with switch (op) { ... }' },
       { label: 'matches char cases', pattern: /case\s*'/, hint: "match symbols in single quotes: case '+':" },
-      { label: 'reads the input', pattern: /cin\s*>>/, hint: 'keep: cin >> op >> a >> b;' },
+      { label: 'reads the input', pattern: /scanf\s*\(/, hint: 'keep: scanf(" %c %d %d", &op, &a, &b);' },
     ],
-    terms: ['char', 'switch', 'case', 'default', 'cin', 'extraction', 'arith'],
+    terms: ['char', 'switch', 'case', 'default', 'scanf', 'addressof', 'arith'],
     reward: { ramBonus: 3, scrap: 18 },
     doneFlag: 'done-ch1-calc',
   },
@@ -350,7 +346,7 @@ export const CHALLENGES: Challenge[] = [
       'TASK: Using a while loop, print n, then n-1, ... down to 1, each followed by a space. For n=3 print:  3 2 1',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    // while n is above 0: print n and a space, then shrink n\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    // while n is above 0: print n and a space,\n    // then shrink n\n\n    return 0;\n}\n',
     expect: [
       { label: 'n=3 counts down', stdin: '3', output: '3 2 1' },
       { label: 'n=5 counts down', stdin: '5', output: '5 4 3 2 1' },
@@ -362,11 +358,11 @@ export const CHALLENGES: Challenge[] = [
     hints: [
       'Repeat while n is still positive, printing n each pass and then shrinking it.',
       'The loop is: while (n > 0) { ... }. Inside, print n and a space.',
-      'Do not forget to shrink n, or it loops forever:  cout << n << " "; n--;',
+      'Do not forget to shrink n, or it loops forever:  printf("%d ", n); n--;',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    while (n > 0) {\n        cout << n << " ";\n        n--;\n    }\n    return 0;\n}\n',
-    terms: ['whileloop', 'compare', 'increment', 'cin'],
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    while (n > 0) {\n        printf("%d ", n);\n        n--;\n    }\n    return 0;\n}\n',
+    terms: ['whileloop', 'compare', 'increment', 'scanf'],
     reward: { ramBonus: 2, scrap: 10 },
     doneFlag: 'done-ch2-while',
   },
@@ -381,7 +377,7 @@ export const CHALLENGES: Challenge[] = [
       'TASK: Using a for loop, print 1, 2, ... up to n, each followed by a space. For n=4 print:  1 2 3 4',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    // for i from 1 to n: print i and a space\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    // for i from 1 to n: print i and a space\n\n    return 0;\n}\n',
     expect: [
       { label: 'n=4 lists shelves', stdin: '4', output: '1 2 3 4' },
       { label: 'n=1 lists one', stdin: '1', output: '1' },
@@ -391,11 +387,11 @@ export const CHALLENGES: Challenge[] = [
     hints: [
       'Count i from 1 up to n, printing each i followed by a space.',
       'The header is: for (int i = 1; i <= n; i++) { ... }',
-      'Inside the loop body:  cout << i << " ";',
+      'Inside the loop body:  printf("%d ", i);',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    for (int i = 1; i <= n; i++) {\n        cout << i << " ";\n    }\n    return 0;\n}\n',
-    terms: ['forloop', 'increment', 'compare', 'cin'],
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    for (int i = 1; i <= n; i++) {\n        printf("%d ", i);\n    }\n    return 0;\n}\n',
+    terms: ['forloop', 'increment', 'compare', 'scanf'],
     reward: { ability: 'looplash', scrap: 12 },
     doneFlag: 'done-ch2-for',
   },
@@ -410,7 +406,7 @@ export const CHALLENGES: Challenge[] = [
       'TASK: Add up every number from 1 to n and print the total. For n=5 the total is 15 (1+2+3+4+5).',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    int sum = 0;\n    // loop from 1 to n, adding each number into sum, then print sum\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    int sum = 0;\n    // loop 1..n adding into sum, then print sum\n\n    return 0;\n}\n',
     expect: [
       { label: 'sum 1..5 = 15', stdin: '5', output: '15' },
       { label: 'sum 1..10 = 55', stdin: '10', output: '55' },
@@ -423,10 +419,10 @@ export const CHALLENGES: Challenge[] = [
     hints: [
       'Keep a running total that survives the whole loop, adding each number into it.',
       'Loop i from 1 to n and do  sum += i;  each pass.',
-      'After the loop finishes, print the total:  cout << sum;',
+      'After the loop finishes, print the total:  printf("%d", sum);',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    int sum = 0;\n    for (int i = 1; i <= n; i++) {\n        sum += i;\n    }\n    cout << sum;\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    int sum = 0;\n    for (int i = 1; i <= n; i++) {\n        sum += i;\n    }\n    printf("%d", sum);\n    return 0;\n}\n',
     terms: ['compound', 'forloop', 'varword', 'int'],
     reward: { ramBonus: 2, scrap: 12 },
     doneFlag: 'done-ch2-accum',
@@ -437,28 +433,28 @@ export const CHALLENGES: Challenge[] = [
     floor: 2,
     teaches: 'nested loops',
     brief: [
-      'A loop inside a loop builds two dimensions. The outer loop makes rows; the inner loop fills each row. Print endl at the end of a row to drop to the next line.',
+      'A loop inside a loop builds two dimensions. The outer loop makes rows; the inner loop fills each row. Print "\\n" at the end of a row to drop to the next line.',
       'The starter reads an int n.',
       'TASK: Print an n-by-n block of # characters — n rows, each with n hashes. For n=3:  ###  ###  ### (three lines).',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    // outer loop for each row; inner loop prints n hashes; then endl\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    // outer loop = rows; inner loop prints\n    // n hashes; then a "\\n"\n\n    return 0;\n}\n',
     expect: [
       { label: 'n=3 makes a 3x3 block', stdin: '3', output: '###\n###\n###' },
       { label: 'n=2 makes a 2x2 block', stdin: '2', output: '##\n##' },
     ],
     require: [
       { label: 'has a loop inside a loop', pattern: /for[\s\S]*for|while[\s\S]*while|for[\s\S]*while|while[\s\S]*for/, hint: 'put one loop inside another: outer for rows, inner for hashes' },
-      { label: 'ends each row', pattern: /endl|"\\n"|'\\n'/, hint: 'drop to the next line after each row with cout << endl;' },
+      { label: 'ends each row', pattern: /\\n/, hint: 'drop to the next line after each row with printf("\\n");' },
     ],
     hints: [
       'Make rows with an outer loop; fill each row with an inner loop of hashes.',
-      'Inner loop:  for (int c = 0; c < n; c++) cout << "#";',
-      'After the inner loop, drop a line with  cout << endl;  then let the outer loop repeat.',
+      'Inner loop:  for (int c = 0; c < n; c++) printf("#");',
+      'After the inner loop, drop a line with  printf("\\n");  then let the outer loop repeat.',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    for (int r = 0; r < n; r++) {\n        for (int c = 0; c < n; c++) {\n            cout << "#";\n        }\n        cout << endl;\n    }\n    return 0;\n}\n',
-    terms: ['forloop', 'endl', 'increment'],
+      '#include <stdio.h>\n\nint main() {\n    int n;\n    scanf("%d", &n);\n    for (int r = 0; r < n; r++) {\n        for (int c = 0; c < n; c++) {\n            printf("#");\n        }\n        printf("\\n");\n    }\n    return 0;\n}\n',
+    terms: ['forloop', 'escape', 'increment'],
     reward: { ramBonus: 3, scrap: 20 },
     doneFlag: 'done-ch2-nested',
   },
@@ -471,18 +467,18 @@ export const CHALLENGES: Challenge[] = [
     teaches: 'arrays — a row of boxes',
     brief: [
       'An ARRAY is a row of same-type boxes under one name: int bins[4]; makes four ints side by side. bins[i] is box number i — and counting starts at 0, so the first box is bins[0] and the last is bins[3].',
-      'Loops and arrays are partners: the loop counter is the index.',
+      'Loops and arrays are partners: the loop counter is the index. scanf fills one box with &bins[i] — the address of that box.',
       'TASK: Read 4 ints into an array, then print them in REVERSE order, each followed by a space. For 3 9 4 7 print:  7 4 9 3',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bins[4];\n    // loop 0..3: cin >> bins[i]\n    // loop 3..0: print bins[i] and a space\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int bins[4];\n    // loop 0..3: scanf("%d", &bins[i])\n    // loop 3..0: print bins[i] and a space\n\n    return 0;\n}\n',
     hints: [
       'One loop fills the array front to back; a second loop reads it back to front.',
-      'Fill it:  for (int i = 0; i < 4; i++) { cin >> bins[i]; }',
-      'Reverse is a countdown:  for (int i = 3; i >= 0; i--) { cout << bins[i] << " "; }',
+      'Fill it:  for (int i = 0; i < 4; i++) { scanf("%d", &bins[i]); }',
+      'Reverse is a countdown:  for (int i = 3; i >= 0; i--) { printf("%d ", bins[i]); }',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int bins[4];\n    for (int i = 0; i < 4; i++) {\n        cin >> bins[i];\n    }\n    for (int i = 3; i >= 0; i--) {\n        cout << bins[i] << " ";\n    }\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int bins[4];\n    for (int i = 0; i < 4; i++) {\n        scanf("%d", &bins[i]);\n    }\n    for (int i = 3; i >= 0; i--) {\n        printf("%d ", bins[i]);\n    }\n    return 0;\n}\n',
     expect: [
       { label: '3 9 4 7 reversed', stdin: '3 9 4 7', output: '7 4 9 3' },
       { label: '1 2 3 4 reversed', stdin: '1 2 3 4', output: '4 3 2 1' },
@@ -491,7 +487,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'uses the array', pattern: /bins\s*\[/, hint: 'store into the boxes: bins[i]' },
       { label: 'uses a loop', pattern: /for\s*\(|while\s*\(/, hint: 'walk the indexes with a loop' },
     ],
-    terms: ['array', 'index', 'forloop', 'cin', 'extraction'],
+    terms: ['array', 'index', 'forloop', 'scanf', 'addressof'],
     reward: { ramBonus: 2, scrap: 14 },
     doneFlag: 'done-ch3-array',
   },
@@ -506,14 +502,14 @@ export const CHALLENGES: Challenge[] = [
       'TASK: Read a 2x3 grid of ints (row by row), then print the LARGEST value in the grid. For 4 9 1 / 7 2 8 that is 9.',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int m[2][3];\n    // nested loops: cin >> m[r][c]\n    // start big = m[0][0]; scan for bigger\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int m[2][3];\n    // nested loops: scanf("%d", &m[r][c])\n    // start big = m[0][0]; scan for bigger\n\n    return 0;\n}\n',
     hints: [
       'Fill the grid with nested loops, then scan it the same way, keeping the biggest seen so far.',
       'Start the record holder at the first cell:  int big = m[0][0];',
       'In the scan:  if (m[r][c] > big) { big = m[r][c]; }',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint main() {\n    int m[2][3];\n    for (int r = 0; r < 2; r++) {\n        for (int c = 0; c < 3; c++) {\n            cin >> m[r][c];\n        }\n    }\n    int big = m[0][0];\n    for (int r = 0; r < 2; r++) {\n        for (int c = 0; c < 3; c++) {\n            if (m[r][c] > big) {\n                big = m[r][c];\n            }\n        }\n    }\n    cout << big;\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    int m[2][3];\n    for (int r = 0; r < 2; r++) {\n        for (int c = 0; c < 3; c++) {\n            scanf("%d", &m[r][c]);\n        }\n    }\n    int big = m[0][0];\n    for (int r = 0; r < 2; r++) {\n        for (int c = 0; c < 3; c++) {\n            if (m[r][c] > big) {\n                big = m[r][c];\n            }\n        }\n    }\n    printf("%d", big);\n    return 0;\n}\n',
     expect: [
       { label: 'largest of 4 9 1 7 2 8 is 9', stdin: '4 9 1 7 2 8', output: '9' },
       { label: 'largest of 1 2 3 4 5 6 is 6', stdin: '1 2 3 4 5 6', output: '6' },
@@ -533,19 +529,19 @@ export const CHALLENGES: Challenge[] = [
     floor: 3,
     teaches: 'functions — define & call',
     brief: [
-      'A FUNCTION is a named block that does one job, from math\'s f(x). Define it once above main; CALL it by name as often as you like. Its parameters receive COPIES of what you pass (call by value), and return hands the answer back.',
+      "A FUNCTION is a named block that does one job, from math's f(x). Define it once above main; CALL it by name as often as you like. Its parameters receive COPIES of what you pass (call by value), and return hands the answer back. printf and scanf are functions too — the stdio library wrote those for you.",
       'A function may even call itself — recursion — as long as a base case stops it.',
       'TASK: Define int average(int a, int b, int c) that returns their average. In main, read three ints and print average(x, y, z). For 3 4 5 print 4.',
     ],
     starter:
-      '#include <iostream>\nusing namespace std;\n\n// define int average(int a, int b, int c) here\n\nint main() {\n    int x;\n    int y;\n    int z;\n    cin >> x >> y >> z;\n    // print average(x, y, z)\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\n// define int average(int a, int b, int c) here\n\nint main() {\n    int x;\n    int y;\n    int z;\n    scanf("%d %d %d", &x, &y, &z);\n    // print average(x, y, z) with %d\n\n    return 0;\n}\n',
     hints: [
       'The function lives ABOVE main: its own int header, braces, and a return.',
       'int average(int a, int b, int c) {\n    return (a + b + c) / 3;\n}',
-      'Calling it looks like using a variable:  cout << average(x, y, z);',
+      'Calling it looks like using a variable:  printf("%d", average(x, y, z));',
     ],
     solution:
-      '#include <iostream>\nusing namespace std;\n\nint average(int a, int b, int c) {\n    return (a + b + c) / 3;\n}\n\nint main() {\n    int x;\n    int y;\n    int z;\n    cin >> x >> y >> z;\n    cout << average(x, y, z);\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint average(int a, int b, int c) {\n    return (a + b + c) / 3;\n}\n\nint main() {\n    int x;\n    int y;\n    int z;\n    scanf("%d %d %d", &x, &y, &z);\n    printf("%d", average(x, y, z));\n    return 0;\n}\n',
     expect: [
       { label: 'average of 3 4 5 is 4', stdin: '3 4 5', output: '4' },
       { label: 'average of 10 20 30 is 20', stdin: '10 20 30', output: '20' },
@@ -554,7 +550,7 @@ export const CHALLENGES: Challenge[] = [
       { label: 'defines average(...)', pattern: /int\s+average\s*\(/, hint: 'define it: int average(int a, int b, int c) { ... }' },
       { label: 'returns the answer', pattern: /return\s+/, hint: 'hand the result back with return' },
     ],
-    terms: ['func', 'params', 'returnval', 'recursion', 'cin'],
+    terms: ['func', 'params', 'returnval', 'recursion', 'printf'],
     reward: { ability: 'subroutine', scrap: 18 },
     doneFlag: 'done-ch3-func',
   },
@@ -562,31 +558,31 @@ export const CHALLENGES: Challenge[] = [
     id: 'ch3-string',
     title: 'NAME TAG',
     floor: 3,
-    teaches: 'strings — length & letters',
+    teaches: "char arrays & '\\0'",
     brief: [
-      'A string is a row of chars, and it acts like one: s[i] is character number i, and s.length() (or s.size()) says how many there are — both come with the standard <string> library.',
-      'Chars compare like anything else: s[i] == \'E\' asks if character i is a capital E.',
-      'TASK: Read a word. Print LEN: and its length, then on the next line E: and how many capital E letters it contains. PERISHABLE has 10 letters and 2 Es.',
+      "In C, a string IS an array of chars ending in the invisible '\\0' terminator: char s[50] holds up to 49 characters plus the '\\0'. scanf(\"%s\", s) fills it — no & needed, because an array's name is already an address.",
+      "Loop with s[i] != '\\0' to walk the text to its end; chars compare like numbers: s[i] == 'E'.",
+      'TASK: Read a word. Print LEN: and its length (count to the \'\\0\'), then on the next line E: and how many capital E letters it has. PERISHABLE: 10 and 2.',
     ],
     starter:
-      '#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s;\n    cin >> s;\n    // line 1: LEN: s.length()\n    // line 2: E: count of \'E\' chars in s\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    char s[50];\n    scanf("%s", s);\n    // count to the \'\\0\' for LEN,\n    // then count the \'E\' chars\n\n    return 0;\n}\n',
     hints: [
-      'The length is one call. The count is a loop over every index, checking each char.',
-      'Loop the indexes:  for (int i = 0; i < s.length(); i++) { ... }',
-      "Count matches:  if (s[i] == 'E') { count++; }",
+      "The length is a loop that stops at '\\0'. The E-count checks every char on the way.",
+      "Length:  int len = 0; while (s[len] != '\\0') { len++; }",
+      "Count matches inside a second loop:  if (s[i] == 'E') { count++; }",
     ],
     solution:
-      '#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string s;\n    cin >> s;\n    cout << "LEN: " << s.length() << endl;\n    int count = 0;\n    for (int i = 0; i < s.length(); i++) {\n        if (s[i] == \'E\') {\n            count++;\n        }\n    }\n    cout << "E: " << count;\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nint main() {\n    char s[50];\n    scanf("%s", s);\n    int len = 0;\n    while (s[len] != \'\\0\') {\n        len++;\n    }\n    printf("LEN: %d\\n", len);\n    int count = 0;\n    for (int i = 0; i < len; i++) {\n        if (s[i] == \'E\') {\n            count++;\n        }\n    }\n    printf("E: %d", count);\n    return 0;\n}\n',
     expect: [
       { label: 'PERISHABLE: 10 letters, 2 Es', stdin: 'PERISHABLE', output: 'LEN: 10\nE: 2' },
       { label: 'WES: 3 letters, 1 E', stdin: 'WES', output: 'LEN: 3\nE: 1' },
       { label: 'MOP: 3 letters, 0 Es', stdin: 'MOP', output: 'LEN: 3\nE: 0' },
     ],
     require: [
-      { label: 'asks the string its length', pattern: /\.length\s*\(\s*\)|\.size\s*\(\s*\)/, hint: 'use s.length() or s.size()' },
-      { label: 'looks at the characters', pattern: /s\s*\[/, hint: 'index the string like an array: s[i]' },
+      { label: 'declares a char array', pattern: /char\s+\w+\s*\[/, hint: 'a C string is a char array: char s[50];' },
+      { label: "stops at the '\\0' terminator", pattern: /'\\0'/, hint: "the text ends at '\\0': while (s[len] != '\\0')" },
     ],
-    terms: ['stringT', 'length', 'index', 'char', 'forloop', 'compare'],
+    terms: ['charr', 'nullterm', 'index', 'char', 'whileloop', 'compare'],
     reward: { ramBonus: 2, scrap: 16 },
     doneFlag: 'done-ch3-string',
   },
@@ -596,28 +592,28 @@ export const CHALLENGES: Challenge[] = [
     floor: 3,
     teaches: 'structs — group your data',
     brief: [
-      'A STRUCT bundles related variables into one type — a form with labeled boxes: struct Badge { string name; int id; }; defines the form; Badge b; stamps one out. The dot reaches inside: b.name, b.id.',
-      'Define the struct ABOVE main, like a function.',
-      'TASK: Define struct Badge with a string name and an int id. Read a name and an id into one Badge, then print exactly:  ID 7: WES  (for input WES 7).',
+      'A STRUCT bundles related variables into one type — a form with labeled boxes: struct Badge { char name[30]; int id; }; defines the form; struct Badge b; stamps one out. The dot reaches inside: b.name, b.id.',
+      'Define the struct ABOVE main, like a function. Read into fields the usual way: &b.id for the int, plain b.name for the char array.',
+      'TASK: Define struct Badge with a char name[30] and an int id. Read a name and an id into one Badge, then print exactly:  ID 7: WES  (for input WES 7).',
     ],
     starter:
-      '#include <iostream>\n#include <string>\nusing namespace std;\n\n// struct Badge { string name; int id; };\n\nint main() {\n    // declare a Badge, cin >> its fields,\n    // print "ID " id ": " name\n\n    return 0;\n}\n',
+      '#include <stdio.h>\n\n// struct Badge { char name[30]; int id; };\n\nint main() {\n    // declare a struct Badge, scanf its fields,\n    // print "ID " id ": " name\n\n    return 0;\n}\n',
     hints: [
       'The struct definition ends with a semicolon after its closing brace.',
-      'Declare one and fill it:  Badge b;  then  cin >> b.name >> b.id;',
-      'Print the fields:  cout << "ID " << b.id << ": " << b.name;',
+      'Declare one and fill it:  struct Badge b;  then  scanf("%s %d", b.name, &b.id);',
+      'Print the fields:  printf("ID %d: %s", b.id, b.name);',
     ],
     solution:
-      '#include <iostream>\n#include <string>\nusing namespace std;\n\nstruct Badge {\n    string name;\n    int id;\n};\n\nint main() {\n    Badge b;\n    cin >> b.name >> b.id;\n    cout << "ID " << b.id << ": " << b.name;\n    return 0;\n}\n',
+      '#include <stdio.h>\n\nstruct Badge {\n    char name[30];\n    int id;\n};\n\nint main() {\n    struct Badge b;\n    scanf("%s %d", b.name, &b.id);\n    printf("ID %d: %s", b.id, b.name);\n    return 0;\n}\n',
     expect: [
       { label: 'WES 7 files as ID 7: WES', stdin: 'WES 7', output: 'ID 7: WES' },
       { label: 'PRAM 12 files as ID 12: PRAM', stdin: 'PRAM 12', output: 'ID 12: PRAM' },
     ],
     require: [
-      { label: 'defines struct Badge', pattern: /struct\s+Badge\s*\{/, hint: 'define the form: struct Badge { string name; int id; };' },
+      { label: 'defines struct Badge', pattern: /struct\s+Badge\s*\{/, hint: 'define the form: struct Badge { char name[30]; int id; };' },
       { label: 'reaches fields with the dot', pattern: /\w\s*\.\s*(name|id)/, hint: 'the dot reaches inside: b.name, b.id' },
     ],
-    terms: ['structT', 'dot', 'stringT', 'int', 'cin', 'extraction'],
+    terms: ['structT', 'dot', 'charr', 'int', 'scanf', 'addressof'],
     reward: { ramBonus: 3, scrap: 22 },
     doneFlag: 'done-ch3-struct',
   },

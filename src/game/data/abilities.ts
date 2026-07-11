@@ -1,7 +1,7 @@
 ﻿import { PAL } from '../../art/palette.ts'
 
 /**
- * Combat abilities. Each one is themed as a piece of C++ the player has
+ * Combat abilities. Each one is themed as a piece of C the player has
  * literally written at a terminal — `sig` is shown in menus so the code and
  * the power stay linked in the player's head.
  *
@@ -11,7 +11,7 @@
 export interface Ability {
   id: string
   name: string
-  /** The line of C++ this power "is". */
+  /** The line of C this power "is". */
   sig: string
   desc: string
   cost: number
@@ -39,7 +39,7 @@ export const ABILITIES: Record<string, Ability> = {
   flush: {
     id: 'flush',
     name: 'Flush',
-    sig: 'cout << torrent << flush;',
+    sig: 'printf("%s", torrent); fflush(stdout);',
     desc: 'Blast the target with a pressurized output stream.',
     cost: 2,
     kind: 'attack',

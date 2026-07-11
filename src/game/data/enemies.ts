@@ -7,7 +7,7 @@ import {
 
 /**
  * Garbage-themed enemies. Every one is headless (hard art rule) and every
- * `scan` entry teaches or foreshadows a real C++ idea — enemies ARE the
+ * `scan` entry teaches or foreshadows a real C idea — enemies ARE the
  * curriculum's flavor text. Keep that pattern when adding more.
  */
 export interface EnemyMove {
@@ -27,7 +27,7 @@ export interface EnemySpec {
   scrap: number
   sprite: PixelArt
   moves: EnemyMove[]
-  /** Shown by the Scan ability — one C++ lesson per enemy. */
+  /** Shown by the Scan ability — one C lesson per enemy. */
   scan: string
   // ----- boss-only fields -----
   /** Marks a story boss: bigger presence, scripted moves, gates floor clear. */

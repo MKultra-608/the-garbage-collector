@@ -374,6 +374,109 @@ expectError('printing a whole struct', H + 'struct P { int x; };\nint main() { P
 
 expectError('unknown struct field', H + 'struct P { int x; };\nint main() { P a; cout << a.y; }', 'no field')
 
+// ---- C stdio (the curriculum's real dialect: CS1160 labs) ----
+
+const C = '#include <stdio.h>\n'
+
+expectOut('printf hello with newline', C + 'int main() { printf("Hello World\\n"); return 0; }', 'Hello World\n')
+
+expectOut('printf %d substitutes an int', C + 'int main() { int year = 2022; printf("Year = %d", year); }', 'Year = 2022')
+
+expectOut('printf %i works like %d', C + 'int main() { printf("%i", 42); }', '42')
+
+expectOut(
+  'printf several specifiers in order',
+  C + 'int main() { int a = 3; int b = 2; printf("CARTS: %d LEFT: %d", a, b); }',
+  'CARTS: 3 LEFT: 2',
+)
+
+expectOut('printf %.2f rounds to 2 decimals', C + 'int main() { float pi = 3.14159; printf("%.2f", pi); }', '3.14')
+
+expectOut('printf %0.2f (lab spelling) works too', C + 'int main() { printf("%0.2f", 1.5); }', '1.50')
+
+expectOut('printf %f defaults to 6 decimals', C + 'int main() { printf("%f", 1.5); }', '1.500000')
+
+expectOut('printf %c prints a char', C + "int main() { char g = 'A'; printf(\"grade %c\", g); }", 'grade A')
+
+expectOut('printf %% prints a percent sign', C + 'int main() { printf("100%%"); }', '100%')
+
+expectOut('printf %lld (factorial lab)', C + 'int main() { long long int f = 120; printf("Factorial = %lld", f); }', 'Factorial = 120')
+
+expectOut('scanf %d reads into &x', C + 'int main() { int x; scanf("%d", &x); printf("%d", x + 1); }', '8', '7')
+
+expectOut(
+  'scanf several values in one call',
+  C + 'int main() { int a; int b; scanf("%d %d", &a, &b); printf("%d", a * b); }',
+  '12',
+  '3 4',
+)
+
+expectOut('scanf %c reads a symbol', C + "int main() { char op; scanf(\" %c\", &op); if (op == '+') printf(\"plus\"); }", 'plus', '+')
+
+expectOut('scanf %f reads a decimal', C + 'int main() { float r; scanf("%f", &r); printf("%.1f", r * 2); }', '5.0', '2.5')
+
+expectError(
+  'scanf without & teaches the address lesson',
+  C + 'int main() { int x; scanf("%d", x); }',
+  '&',
+)
+
+expectOut(
+  'scanf into an array element with &a[i]',
+  C + 'int main() { int a[3]; for (int i = 0; i < 3; i++) { scanf("%d", &a[i]); } printf("%d", a[0] + a[2]); }',
+  '10',
+  '7 5 3',
+)
+
+// ---- char arrays (Lab 10: strings ARE char arrays ending in '\0') ----
+
+expectOut('char array from a string literal', C + 'int main() { char a[6] = "Hello"; printf("%s", a); }', 'Hello')
+
+expectOut('char array with inferred size', C + 'int main() { char b[] = "MOP"; printf("%s!", b); }', 'MOP!')
+
+expectOut('scanf %s fills a char array (no &)', C + 'int main() { char w[20]; scanf("%s", w); printf("%s", w); }', 'WES', 'WES')
+
+expectError(
+  'scanf with & on an array teaches the array-is-address lesson',
+  C + 'int main() { char w[20]; scanf("%s", &w); }',
+  'already',
+)
+
+expectOut(
+  "loop a string to the '\\0' terminator (count letters)",
+  C +
+    'int main() { char s[] = "Hallo! HAHA!"; int i = 0; int count = 0; while (s[i] != \'\\0\') { if (s[i] == \'a\' || s[i] == \'A\') { count++; } i++; } printf("The number of A & a: %d", count); }',
+  'The number of A & a: 3',
+)
+
+expectOut(
+  'write into a char array cell (toggle-style)',
+  C + 'int main() { char s[] = "MOP"; s[0] = \'B\'; printf("%s", s); }',
+  'BOP',
+)
+
+expectOut('gets reads, puts prints with newline', C + 'int main() { char n[30]; gets(n); puts(n); }', 'PRAM\n', 'PRAM')
+
+expectOut(
+  'manual strlen via a for loop (Lab 10 example)',
+  C + 'int main() { char st[] = "CS 1160"; int i; for (i = 0; st[i] != \'\\0\'; i++); printf("the length is : %d", i); }',
+  'the length is : 7',
+)
+
+expectOut(
+  'struct with a char-array field (Lab 11 shape)',
+  C +
+    'struct Badge { char name[30]; int id; };\nint main() { struct Badge b; scanf("%s", b.name); scanf("%d", &b.id); printf("ID %d: %s", b.id, b.name); }',
+  'ID 7: WES',
+  'WES 7',
+)
+
+expectOut(
+  'function + printf (labs 8-9 shape)',
+  C + 'float average(float a, float b, float c) { return (a + b + c) / 3; }\nint main() { printf("%.2f", average(1, 2, 3)); }',
+  '2.00',
+)
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed`)
   process.exit(1)

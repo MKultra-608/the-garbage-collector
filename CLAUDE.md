@@ -1,9 +1,9 @@
 # The Garbage Collector
 
-A Pokémon-like RPG that teaches real C++ — from absolute novice to proficient
-hobbyist. You are Wes, the night janitor of Complex 7, an office tower whose
+A Pokémon-like RPG that teaches real C — taught exactly the way the CS1160
+labs teach it (stdio.h, printf/scanf) — from absolute novice to hobbyist. You are Wes, the night janitor of Complex 7, an office tower whose
 garbage-collection daemon died years ago. The trash got organized. You climb
-the building floor by floor, learning C++ at wall terminals to unlock cleaning
+the building floor by floor, learning C at wall terminals to unlock cleaning
 abilities, and fighting headless garbage creatures in turn-based battles.
 
 Target quality bar: a successful $4.99 educational Steam game. Tight, cohesive,
@@ -15,7 +15,7 @@ zero filler. Read `docs/GAME_DESIGN.md` before adding features.
 npm run dev        # vite dev server on http://localhost:5178 (strict port)
 npm run build      # typecheck + production bundle to dist/
 npm run typecheck  # tsc --noEmit
-npm test           # C++ interpreter regression tests (Node, no browser needed)
+npm test           # C interpreter regression tests (Node, no browser needed)
 ```
 
 There is a preview launch config named `garbage-collector` in
@@ -32,7 +32,7 @@ There is a preview launch config named `garbage-collector` in
    equipment and are allowed. (Lore: "the particulate".)
 3. **Every non-human creature is headless.** Garbage monsters are torsos, blobs,
    cones, piles. No heads, no faces. (Lore: garbage has no head to speak with.)
-4. **The C++ taught is real.** Challenges run the player's code through a real
+4. **The C taught is real.** Challenges run the player's code through a real
    interpreter (`src/game/code/interp.ts`) and grade behavior. Never "fake" a
    lesson with pure regex matching; patterns only steer toward the concept.
 5. **Fixed palette** (`src/art/palette.ts`). New colors need a new material and
@@ -70,12 +70,12 @@ src/
     state.ts                 GameState shape, newGame(), XP/leveling, unlockedFloors
     progression.ts           floor clear/unlock logic (challenges + boss)
     data/
-      abilities.ts           combat abilities (each IS a line of C++; multi-hit via `hits`)
-      enemies.ts             enemy specs; scan teaches C++; boss fields (script/weakTo)
+      abilities.ts           combat abilities (each IS a line of C; multi-hit via `hits`)
+      enemies.ts             enemy specs; scan teaches C; boss fields (script/weakTo)
       challenges.ts          code challenges (the curriculum content), tagged by `floor`
       maps.ts                string-grid maps + entity lists + FLOORS registry
     code/
-      interp.ts              C++ micro-interpreter (tested by npm test)
+      interp.ts              C micro-interpreter (tested by npm test)
       validator.ts           grades challenge attempts via interp + patterns
     scenes/
       boot.ts title.ts       CRT boot log; title menu
@@ -84,7 +84,7 @@ src/
       pause.ts               stats/abilities/save menu
       terminal.ts            challenge picker (filtered to the current floor)
       elevator.ts            floor-travel picker (unlocked floors)
-      editor.ts              modal C++ editor: edit -> run -> grade -> reward
+      editor.ts              modal C editor: edit -> run -> grade -> reward
       battle.ts              turn-based battle (EarthBound-style first person; bosses)
 tests/
   interp.test.ts             interpreter regression suite — extend per language feature
@@ -101,7 +101,7 @@ fades in.
 ## Recipes
 
 **Add an enemy**: sprite in `sprites.ts` (24x24, headless!), spec in
-`enemies.ts` (moves + a `scan` line that teaches real C++), place a
+`enemies.ts` (moves + a `scan` line that teaches real C), place a
 `trash` entity in `maps.ts` with a fresh flag. Add the sprite to
 `content.test.ts`'s art list so its legend is checked.
 
@@ -114,7 +114,7 @@ safety) + an entry in `FLOORS` (spawn point, optional `bossFlag`). Tag its
 challenges with the matching `floor` index. Clearing the previous floor
 auto-unlocks it via `progression.ts` — no other wiring needed.
 
-**Add an ability**: entry in `abilities.ts` (`sig` = the C++ line it embodies),
+**Add an ability**: entry in `abilities.ts` (`sig` = the C line it embodies),
 then reward it from a challenge in `challenges.ts`. Abilities are ONLY granted
 by challenges — that is the core loop.
 

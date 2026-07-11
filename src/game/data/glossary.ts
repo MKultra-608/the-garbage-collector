@@ -1,8 +1,10 @@
 /**
  * The glossary: every word and command the curriculum uses, defined once.
  * Each entry says WHAT it does and WHY it is called what it is called —
- * players should never have to take a magic word on faith (and every I/O
- * word is traced back to the standard I/O library it is built on).
+ * players should never have to take a magic word on faith. The curriculum
+ * is C, taught the way the CS1160 labs teach it: every I/O function
+ * (printf, scanf, gets, puts) is built on the stdio library that
+ * `#include <stdio.h>` brings in.
  *
  * Challenges reference these by key (Challenge.terms); the editor's F1
  * overlay renders them on the GLOSSARY page. tests/solutions.test.ts fails
@@ -17,12 +19,8 @@ export interface Term {
 
 export const GLOSSARY: Record<string, Term> = {
   include: {
-    t: '#include <iostream>',
-    d: 'Copies the standard Input/Output STREAM library into your program before it builds. cout and cin are defined there — every print and read is built on this library (the C++ descendant of C\'s stdio). The # marks a preprocessor order: "include this file here".',
-  },
-  usingstd: {
-    t: 'using namespace std',
-    d: 'The standard library keeps its names (cout, cin, string, endl) inside a NAMESPACE called std — short for STanDard. This line means "I am using those names", so you can write cout instead of std::cout.',
+    t: '#include <stdio.h>',
+    d: 'Copies the STanDard Input/Output library — stdio — into your program before it builds. Every I/O function you use (printf, scanf, gets, puts) is built on this library; without this line the compiler has never heard of them. The # marks a preprocessor order: "include this file here".',
   },
   main: {
     t: 'int main()',
@@ -40,17 +38,29 @@ export const GLOSSARY: Record<string, Term> = {
     t: '"double quotes"',
     d: 'Mark a string literal. Everything between them is DATA to show, not code to run — the quotes are the fence between your program and its text.',
   },
-  cout: {
-    t: 'cout',
-    d: '"Character OUTput" (say: see-out) — the output stream from the standard I/O library. It is called a stream because data flows through it like water, out to the screen.',
+  printf: {
+    t: 'printf()',
+    d: '"PRINT Formatted" — the stdio library\'s printing function. It takes a format string and prints it, filling each % placeholder with the next value after the comma: printf("Year = %d", year);',
   },
-  insertion: {
-    t: '<<',
-    d: 'The stream INSERTION operator: inserts the thing on its right into the stream on its left. The arrows point the way the data flows — toward cout, toward the screen.',
+  scanf: {
+    t: 'scanf()',
+    d: '"SCAN Formatted" — printf\'s twin from the stdio library, reading instead of writing. It scans what is typed and stores it into your variables: scanf("%d", &year); — note the &, because scanf needs to know WHERE the variable lives.',
   },
-  endl: {
-    t: 'endl',
-    d: '"END Line" — ends the current line (like pressing Enter) and flushes the stream: everything waiting is pushed out at once. The escape code \\n inside quotes makes the same line break.',
+  fmtspec: {
+    t: '%d %f %c %s',
+    d: 'Format specifiers — the placeholders printf and scanf use, one letter per data type: %d = Decimal integer (also %i for Integer), %f = Floating-point, %c = Character, %s = String. %.2f means "float, 2 digits after the point". The % marks the slot; the letter says what fills it.',
+  },
+  escape: {
+    t: '\\n  \\t',
+    d: 'Escape sequences — characters you cannot type directly, "escaped" with a backslash: \\n is a New line (like pressing Enter), \\t is a Tab. printf("Hello\\n") prints Hello and ends the line.',
+  },
+  addressof: {
+    t: '&',
+    d: 'The ADDRESS-OF operator: &x means "the address where x lives in memory". scanf needs it to deliver the value into the right box — like writing the apartment number on a package. Arrays are the exception: an array\'s name is already its address, so no & is needed.',
+  },
+  getsputs: {
+    t: 'gets / puts',
+    d: '"GET String" and "PUT String" — the stdio library\'s line I/O: gets(name) reads a whole line (spaces included) into a char array; puts(name) prints a string and ends the line.',
   },
   varword: {
     t: 'variable',
@@ -74,19 +84,19 @@ export const GLOSSARY: Record<string, Term> = {
   },
   modulo: {
     t: '%',
-    d: 'The MODULO operator — the remainder after whole-number division: 17 % 5 is 2. From the Latin modulus, "a small measure": it measures out fives and reports what is left over.',
+    d: 'The MODULO operator — the remainder after whole-number division: 17 % 5 is 2. From the Latin modulus, "a small measure": it measures out fives and reports what is left over. (Inside a printf format string, % instead marks a placeholder — %% prints a real percent sign.)',
   },
-  bool: {
-    t: 'bool',
-    d: 'A type with exactly two values: true and false. Named after George Boole, the mathematician who turned true/false reasoning into algebra. cout prints a bool as 1 (true) or 0 (false).',
+  truth: {
+    t: '1 and 0',
+    d: 'C\'s true and false. A comparison produces exactly 1 (true) or 0 (false), stored in plain ints — printf("%d", a == 6) prints 1 or 0. In a condition, any nonzero value counts as true.',
   },
   compare: {
     t: '== != < <= >=',
-    d: 'The comparison operators — each asks a question and answers with a bool. == asks "equal?" (doubled so it cannot be mistaken for = assignment); != means "not equal" — the ! is the NOT sign.',
+    d: 'The comparison operators — each asks a question and answers 1 (true) or 0 (false). == asks "equal?" (doubled so it cannot be mistaken for = assignment); != means "not equal" — the ! is the NOT sign.',
   },
   and: {
     t: '&&',
-    d: 'Logical AND — true only when BOTH sides are true. & is the ampersand, the "and" sign; it is doubled to mean whole-statement logic.',
+    d: 'Logical AND — true only when BOTH sides are true. & is the ampersand, the "and" sign; it is doubled to tell it apart from the single & (address-of).',
   },
   or: {
     t: '||',
@@ -95,14 +105,6 @@ export const GLOSSARY: Record<string, Term> = {
   not: {
     t: '!',
     d: 'Logical NOT — flips true to false and false to true. Programmers read ! aloud as "not": !(volts > amps) is "not (volts above amps)".',
-  },
-  cin: {
-    t: 'cin',
-    d: '"Character INput" (say: see-in) — the input stream from the same standard I/O library as cout. It carries whatever arrives from outside the program (here: the keyboard) into your variables.',
-  },
-  extraction: {
-    t: '>>',
-    d: 'The stream EXTRACTION operator: pulls the next value OUT of the input stream and stores it in your variable. The arrows point the way the data flows — from cin into the box.',
   },
   ifelse: {
     t: 'if / else',
@@ -122,7 +124,7 @@ export const GLOSSARY: Record<string, Term> = {
   },
   break: {
     t: 'break',
-    d: 'BREAKs out of the enclosing switch or loop at once. In a switch, forgetting break makes the code FALL THROUGH into the next case — an inheritance from C that trips everyone once.',
+    d: 'BREAKs out of the enclosing switch or loop at once. In a switch, forgetting break makes the code FALL THROUGH into the next case — a famous C gotcha that trips everyone once.',
   },
   default: {
     t: 'default',
@@ -130,11 +132,15 @@ export const GLOSSARY: Record<string, Term> = {
   },
   char: {
     t: 'char',
-    d: 'Short for CHARacter — exactly one letter, digit, or symbol, written in \'single quotes\'. Under the hood a char is a small number (its character code), which is why chars can be compared and switched on.',
+    d: 'Short for CHARacter — exactly one letter, digit, or symbol, written in \'single quotes\'. Under the hood a char is a small number (its ASCII code: \'A\' is 65, \'a\' is 97), which is why chars can be compared and switched on.',
   },
-  stringT: {
-    t: 'string',
-    d: 'A STRING of characters threaded together like beads — text of any length. It lives in the standard library (#include <string>) and can be compared with == and joined with +.',
+  charr: {
+    t: 'char s[20]',
+    d: 'A C string: an ARRAY of chars. There is no separate "string type" — text is a row of characters ending in the \'\\0\' terminator. char s[20] reserves 20 slots: up to 19 characters plus the \'\\0\'.',
+  },
+  nullterm: {
+    t: "'\\0'",
+    d: 'The NULL terminator — character code zero, the invisible mark at the end of every C string. It is how printf %s and your loops know where the text stops: while (s[i] != \'\\0\') walks a string to its end.',
   },
   compound: {
     t: '+= -= *= /=',
@@ -142,7 +148,7 @@ export const GLOSSARY: Record<string, Term> = {
   },
   increment: {
     t: '++ / --',
-    d: 'INCREMENT and DECREMENT: change a value by exactly 1. i++ is short for i = i + 1. The language C++ is named with this joke — "C, incremented".',
+    d: 'INCREMENT and DECREMENT: change a value by exactly 1. i++ is short for i = i + 1 — the single most common line in loops.',
   },
   whileloop: {
     t: 'while',
@@ -166,7 +172,7 @@ export const GLOSSARY: Record<string, Term> = {
   },
   func: {
     t: 'function',
-    d: 'A named block of code that does one job, borrowed from math\'s f(x). Define it once, CALL it by name anywhere — the cure for writing the same code twice.',
+    d: 'A named block of code that does one job, borrowed from math\'s f(x). Define it once, CALL it by name anywhere — the cure for writing the same code twice. printf and scanf are functions too — ones the stdio library wrote for you.',
   },
   params: {
     t: 'parameters',
@@ -174,19 +180,15 @@ export const GLOSSARY: Record<string, Term> = {
   },
   returnval: {
     t: 'return x;',
-    d: 'The function\'s answer: RETURN hands the value back to the caller and ends the function. The function\'s declared type (int, double...) promises what kind of answer comes back.',
+    d: 'The function\'s answer: RETURN hands the value back to the caller and ends the function. The function\'s declared type (int, float...) promises what kind of answer comes back.',
   },
   recursion: {
     t: 'recursion',
     d: 'A function calling ITSELF — from the Latin recurrere, "to run back". Each call must shrink the problem toward a BASE CASE that stops the chain; without one the calls pile up until the stack overflows.',
   },
-  length: {
-    t: '.length() / .size()',
-    d: 'Ask a string how many characters it holds. Two names for the same answer: length() is natural for text, size() matches every other container in the standard library.',
-  },
   structT: {
     t: 'struct',
-    d: 'Short for STRUCTure: one variable built out of named fields of different types — like a paper form with labeled boxes. Define the form once; every variable of it is a filled-in copy.',
+    d: 'Short for STRUCTure: one variable built out of named fields of different types — like a paper form with labeled boxes. Define the form once above main; declare filled-in copies with struct Name var;',
   },
   dot: {
     t: '. (member access)',
