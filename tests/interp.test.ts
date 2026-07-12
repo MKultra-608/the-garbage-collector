@@ -510,6 +510,38 @@ expectError(
   'while',
 )
 
+// --- short-circuit evaluation: && / || skip the right operand once decided ---
+expectOut(
+  '&& short-circuits: guarded division by zero never runs',
+  C + 'int main() { int a = 0; if (a != 0 && 5 / a > 1) printf("no"); else printf("safe"); }',
+  'safe',
+)
+expectOut(
+  '|| short-circuits: guarded division by zero never runs',
+  C + 'int main() { int a = 0; if (a == 0 || 5 / a > 1) printf("safe"); }',
+  'safe',
+)
+expectOut(
+  '&& still evaluates the right operand when the left is true',
+  C + 'int main() { int a = 2; if (a != 0 && 10 / a > 1) printf("yes"); else printf("no"); }',
+  'yes',
+)
+expectOut(
+  '&& short-circuits a bounds check: arr[i] never read past the end',
+  C + 'int main() { int a[3] = {1,2,3}; int i = 3; if (i < 3 && a[i] == 9) printf("no"); else printf("ok"); }',
+  'ok',
+)
+expectOut(
+  'short-circuit nests correctly',
+  C + 'int main() { int a=0,b=0; if (a == 0 || (b != 0 && 5 / b > 1)) printf("safe"); }',
+  'safe',
+)
+expectError(
+  'a division by zero that is actually reached still errors',
+  C + 'int main() { int a = 0; printf("%d", 5 / a); }',
+  'division by zero',
+)
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed`)
   process.exit(1)

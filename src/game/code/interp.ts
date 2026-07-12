@@ -262,6 +262,14 @@ class Interp {
   private structs = new Map<string, StructDef>()
   private callDepth = 0
   private retVal: Value | undefined
+  /**
+   * >0 while parsing the right operand of a `&&`/`||` whose left already
+   * decided the result. Real C never evaluates that operand, so the
+   * value-dependent runtime errors it would raise (division/modulo by zero,
+   * out-of-bounds indexing) are suppressed — that is the whole point of a
+   * guard like `if (n != 0 && x / n > 1)`.
+   */
+  private noEval = 0
 
   constructor(private toks: Tok[], stdin: string) {
     this.inbuf = stdin
@@ -1513,7 +1521,11 @@ class Interp {
     let l = this.and()
     while (this.opIs('||')) {
       this.next()
+      // left is already true → C skips the right operand (short-circuit)
+      const skip = asNum(l) !== 0
+      if (skip) this.noEval++
       const r = this.and()
+      if (skip) this.noEval--
       l = { t: 'bool', v: asNum(l) !== 0 || asNum(r) !== 0 }
     }
     return l
@@ -1523,7 +1535,11 @@ class Interp {
     let l = this.equality()
     while (this.opIs('&&')) {
       this.next()
+      // left is already false → C skips the right operand (short-circuit)
+      const skip = asNum(l) === 0
+      if (skip) this.noEval++
       const r = this.equality()
+      if (skip) this.noEval--
       l = { t: 'bool', v: asNum(l) !== 0 && asNum(r) !== 0 }
     }
     return l
@@ -1601,12 +1617,18 @@ class Interp {
       case '*':
         return bothInt ? { t: 'int', v: a * b } : { t: 'double', v: a * b }
       case '/':
-        if (b === 0) throw new CppError('division by zero', line)
+        if (b === 0) {
+          if (this.noEval > 0) return { t: 'int', v: 0 } // short-circuited: never reached in real C
+          throw new CppError('division by zero', line)
+        }
         // THE beginner lesson: int / int truncates
         return bothInt ? { t: 'int', v: Math.trunc(a / b) } : { t: 'double', v: a / b }
       case '%':
         if (!bothInt) throw new CppError("'%' works on integers only", line)
-        if (b === 0) throw new CppError('modulo by zero', line)
+        if (b === 0) {
+          if (this.noEval > 0) return { t: 'int', v: 0 } // short-circuited: never reached in real C
+          throw new CppError('modulo by zero', line)
+        }
         return { t: 'int', v: a % b }
     }
     throw new CppError(`unknown operator '${op}'`, line)
@@ -1665,6 +1687,7 @@ class Interp {
         if (v.t === 'array') {
           const elems = v.elems!
           if (idx < 0 || idx >= elems.length) {
+            if (this.noEval > 0) { v = { t: 'int', v: 0 }; continue } // short-circuited: never reached in real C
             throw new CppError(`index ${idx} is past the end of this array (size ${elems.length})`, t.line)
           }
           const el = elems[idx]
@@ -1678,6 +1701,7 @@ class Interp {
           // past the text you find the '\0' terminator — that is the lesson.
           const limit = cap !== undefined ? cap : s.length + 1
           if (idx < 0 || idx >= limit) {
+            if (this.noEval > 0) { v = { t: 'char', v: '\0' }; continue } // short-circuited: never reached in real C
             throw new CppError(
               cap !== undefined
                 ? `index ${idx} is past the end of this char array (size ${cap})`

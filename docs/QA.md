@@ -51,6 +51,18 @@ Scores after QA pass 1 (2026-07-11). Weighted avg ~7.6; no category below 7.
 
 ## FIXED (log)
 
+- **F4 (P1, interpreter correctness)** — `&&` and `||` did not short-circuit:
+  the interpreter eagerly evaluated the right operand, so a guard like
+  `if (n != 0 && x / n > 1)` (or the bounds idiom `if (i < len && arr[i]...)`)
+  wrongly raised "division by zero" / out-of-bounds instead of running like
+  real C. Violated HARD RULE 4 ("the C taught is real"). Fixed: the operand a
+  short-circuit skips is now parsed under a `noEval` guard that suppresses only
+  the value-dependent runtime errors it would spuriously raise (div/modulo by
+  zero, array/string OOB); a fault that is *actually reached* still errors.
+  Added six regression tests to `tests/interp.test.ts`. Verified: guarded
+  idioms run, both-true still evaluates the RHS, real faults still throw.
+
+
 - **F2 ending** — replaced the stale "Floor 3 is next" beat with a real 5-page
   conclusion (Pram sign-off + a SHIFT COMPLETE card summarizing level, abilities,
   floors cleared). Sets `game-cleared`; title now shows a "* COMPLEX 7 CLEAN *"
