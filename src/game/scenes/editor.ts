@@ -42,6 +42,8 @@ export class EditorScene implements Scene {
   private helpPage: 'hints' | 'terms' = 'hints'
   /** First visible line of the (scrollable) glossary page. */
   private termScroll = 0
+  /** Line the last compile error pointed at (0-indexed), or -1. Cleared on edit. */
+  private errorLine = -1
 
   constructor(
     private eng: Engine,
@@ -114,6 +116,10 @@ export class EditorScene implements Scene {
       return true
     }
     const line = this.lines[this.row]
+    // any structural edit invalidates the error marker from the last run
+    if (['Enter', 'Backspace', 'Delete', 'Tab'].includes(e.key) || e.key.length === 1) {
+      this.errorLine = -1
+    }
     switch (e.key) {
       case 'Enter': {
         if (this.lines.length >= MAX_LINES) return true
@@ -200,6 +206,17 @@ export class EditorScene implements Scene {
     this.gs.code[this.ch.id] = this.text()
     this.result = validate(this.ch, this.text())
     this.mode = 'result'
+    // Point the cursor at the line a compile error names, so the fix is obvious.
+    this.errorLine = -1
+    const m = this.result.error?.match(/line (\d+)/)
+    if (m) {
+      const ln = Math.min(this.lines.length - 1, Math.max(0, parseInt(m[1], 10) - 1))
+      this.errorLine = ln
+      this.row = ln
+      this.col = Math.min(this.col, this.lines[ln].length)
+      if (this.row < this.scroll) this.scroll = this.row
+      if (this.row >= this.scroll + VISIBLE_LINES) this.scroll = this.row - VISIBLE_LINES + 1
+    }
     if (this.result.allPass) this.eng.audio.unlockAbility()
     else this.eng.audio.error()
   }
@@ -365,7 +382,14 @@ export class EditorScene implements Scene {
       const li = this.scroll + i
       if (li >= this.lines.length) break
       const y = CODE_TOP + i * CODE_LINE_H
-      drawText(ctx, String(li + 1).padStart(2, ' '), 4, y, PAL.gray2)
+      if (li === this.errorLine) {
+        // mark the line the compiler complained about
+        ctx.fillStyle = 'rgba(232,87,74,0.16)'
+        ctx.fillRect(2, y - 1, VIEW_W - 4, CODE_LINE_H)
+        ctx.fillStyle = PAL.red
+        ctx.fillRect(2, y - 1, 2, CODE_LINE_H)
+      }
+      drawText(ctx, String(li + 1).padStart(2, ' '), 4, y, li === this.errorLine ? PAL.red : PAL.gray2)
       this.drawCodeLine(ctx, this.lines[li], 22 - xoff, y)
     }
     // cursor
