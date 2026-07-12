@@ -19,7 +19,7 @@
     "dist": "node scripts/make-icon.cjs && npm run app:renderer && electron-builder --dir && node scripts/make-installer.cjs",
     "installer": "node scripts/make-installer.cjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-transform-types tests/interp.test.ts && node --experimental-transform-types tests/content.test.ts && node --experimental-transform-types tests/solutions.test.ts"
+    "test": "node --experimental-transform-types tests/interp.test.ts && node --experimental-transform-types tests/content.test.ts && node --experimental-transform-types tests/solutions.test.ts && node --experimental-transform-types scripts/audit-puzzles.ts"
   },
   "devDependencies": {
     "electron": "^33.0.0",
