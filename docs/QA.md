@@ -51,6 +51,17 @@ Scores after QA pass 1 (2026-07-11). Weighted avg ~7.6; no category below 7.
 
 ## FIXED (log)
 
+- **F5 (P1, terminal UI)** — the certification terminal drew challenge rows at a
+  fixed `y = 54 + i*12` with no scrolling, so Floor 3's SIX exercises spilled
+  the sixth row (y=114) on top of the reward line (y=112) — the last exercise
+  was unreadable/unusable. Rebuilt the picker with a scrolling viewport (5 rows
+  + a proportional scrollbar that appears only when the list overflows), a
+  header `n/m CERTIFIED` progress counter (greens on completion), a `TEACHES:`
+  concept line + task preview for the highlighted exercise, certified rows tinted
+  green, and it now opens pre-focused on the first still-pending exercise.
+  Verified headlessly: the cursor stays inside the scroll window across full
+  up/down navigation (incl. wrap) and rows never overlap the detail block.
+
 - **F4 (P1, interpreter correctness)** — `&&` and `||` did not short-circuit:
   the interpreter eagerly evaluated the right operand, so a guard like
   `if (n != 0 && x / n > 1)` (or the bounds idiom `if (i < len && arr[i]...)`)
