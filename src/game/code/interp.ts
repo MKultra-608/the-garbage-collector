@@ -136,6 +136,9 @@ function lex(src: string): Tok[] {
       i++
       continue
     }
+    if (c === '?') {
+      throw new CppError("the '?:' shortcut is not part of these labs — write it out with if/else", line)
+    }
     throw new CppError(`unexpected character '${c}'`, line)
   }
   // Drop `using namespace std ;` and `std ::` prefixes so both spellings work.
@@ -1122,31 +1125,52 @@ class Interp {
         throw new CppError(`the format string has more % placeholders than values after the comma`, line)
       }
       const v = args[ai++]
+      // spec grammar: [flags][width][.precision][length] — e.g. "-5", "05", ".2", "8.3"
+      const sm = spec.match(/^([-0]*)(\d*)(?:\.(\d+))?l*$/)
+      const left = !!sm?.[1].includes('-')
+      const zero = !left && !!sm?.[1].includes('0')
+      const width = sm?.[2] ? parseInt(sm[2], 10) : 0
+      const prec = sm?.[3] !== undefined ? parseInt(sm[3], 10) : undefined
+      let piece: string
       switch (conv) {
         case 'd':
         case 'i':
         case 'u': {
           if (v.t === 'string') throw new CppError(`%${conv} prints a number — use %s for text`, line)
-          out += String(Math.trunc(asNum(v)))
+          piece = String(Math.trunc(asNum(v)))
           break
         }
         case 'f': {
           if (v.t === 'string') throw new CppError('%f prints a number — use %s for text', line)
-          const m = spec.match(/\.(\d+)/)
-          const prec = m ? parseInt(m[1], 10) : 6
-          out += asNum(v).toFixed(prec)
+          piece = asNum(v).toFixed(prec ?? 6)
           break
         }
         case 'c': {
-          out += v.t === 'char' ? (v.v as string) : String.fromCharCode(Math.trunc(asNum(v)))
+          piece = v.t === 'char' ? (v.v as string) : String.fromCharCode(Math.trunc(asNum(v)))
           break
         }
-        case 's': {
+        default: {
+          // 's'
           if (v.t !== 'string') throw new CppError(`%s prints text — this value is a ${v.t}`, line)
-          out += cstr(v)
+          piece = cstr(v)
+          if (prec !== undefined) piece = piece.slice(0, prec) // %.3s truncates
           break
         }
       }
+      // width padding, exactly like C: '-' left-justifies (spaces); '0' pads
+      // numbers with zeros after the sign; default is right-justify with spaces
+      if (piece.length < width) {
+        if (left) {
+          piece = piece.padEnd(width)
+        } else if (zero && (conv === 'd' || conv === 'i' || conv === 'u' || conv === 'f')) {
+          const neg = piece.startsWith('-')
+          const digits = neg ? piece.slice(1) : piece
+          piece = (neg ? '-' : '') + digits.padStart(width - (neg ? 1 : 0), '0')
+        } else {
+          piece = piece.padStart(width)
+        }
+      }
+      out += piece
       i = j + 1
     }
     if (ai < args.length) {
@@ -1343,7 +1367,9 @@ class Interp {
         if (t.v === 'endl') this.out += '\n'
         continue
       }
-      const val = this.expression()
+      // additive level: the exact operand level C++ gives `<<` chains, so a
+      // bit-shift in normal expressions never collides with stream insertion
+      const val = this.additive()
       if (val.t === 'array') {
         throw new CppError('cannot print a whole array — print its elements one at a time', this.lastLine())
       }
@@ -1557,10 +1583,10 @@ class Interp {
   }
 
   private relational(): Value {
-    let l = this.additive()
+    let l = this.shiftExpr()
     while (this.opIs('<', '>', '<=', '>=')) {
       const opTok = this.next()
-      const r = this.additive()
+      const r = this.shiftExpr()
       let res: boolean
       if (l.t === 'string' && r.t === 'string') {
         const a = l.v as string
@@ -1572,6 +1598,28 @@ class Interp {
         res = opTok.v === '<' ? a < b : opTok.v === '>' ? a > b : opTok.v === '<=' ? a <= b : a >= b
       }
       l = { t: 'bool', v: res }
+    }
+    return l
+  }
+
+  /**
+   * Bit shifts, at real C precedence (between relational and additive).
+   * cout/cin never reach here — their `<<`/`>>` chains are consumed at the
+   * statement level and their segments parse at additive level, exactly the
+   * operand level real C++ gives stream insertions.
+   */
+  private shiftExpr(): Value {
+    let l = this.additive()
+    while (this.opIs('<<', '>>')) {
+      const opTok = this.next()
+      const r = this.additive()
+      if (!isNumeric(l) || !isNumeric(r) || l.t === 'double' || r.t === 'double') {
+        throw new CppError(`'${opTok.v}' shifts bits — it works on integers only`, opTok.line)
+      }
+      const a = Math.trunc(asNum(l))
+      const b = Math.trunc(asNum(r))
+      // JS bitwise ops are 32-bit two's complement — same as a C int
+      l = { t: 'int', v: opTok.v === '<<' ? a << b : a >> b }
     }
     return l
   }

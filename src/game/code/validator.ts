@@ -20,6 +20,56 @@ function normalize(s: string): string {
 }
 
 /**
+ * Blanks out // and /* comments (string-literal aware, newlines preserved so
+ * error line numbers stay right). Patterns and variant substitutions must not
+ * see comment text: a player note quoting the starter line would otherwise
+ * soak up the variant's replacement — or satisfy a require — and mis-grade
+ * perfectly correct code.
+ */
+function stripComments(src: string): string {
+  let out = ''
+  let i = 0
+  const n = src.length
+  while (i < n) {
+    const c = src[i]
+    if (c === '"' || c === "'") {
+      // copy the whole literal, honoring escapes
+      out += c
+      i++
+      while (i < n && src[i] !== c) {
+        out += src[i]
+        if (src[i] === '\\' && i + 1 < n) {
+          out += src[i + 1]
+          i++
+        }
+        i++
+      }
+      if (i < n) {
+        out += src[i]
+        i++
+      }
+      continue
+    }
+    if (c === '/' && src[i + 1] === '/') {
+      while (i < n && src[i] !== '\n') i++
+      continue
+    }
+    if (c === '/' && src[i + 1] === '*') {
+      i += 2
+      while (i < n && !(src[i] === '*' && src[i + 1] === '/')) {
+        if (src[i] === '\n') out += '\n'
+        i++
+      }
+      i += 2
+      continue
+    }
+    out += c
+    i++
+  }
+  return out
+}
+
+/**
  * Turns a variant's literal `from` (e.g. "= 3") into a whitespace-tolerant
  * matcher, so a correct answer written "int bags=3" isn't rejected just for
  * spacing. A trailing digit gets a boundary so "= 3" doesn't match "= 30".
@@ -59,14 +109,17 @@ export function validate(ch: Challenge, code: string): ValidationResult {
     })
   }
 
+  // patterns and substitutions look at code only, never at comment text
+  const bare = stripComments(code)
+
   for (const v of ch.variants ?? []) {
     const [from, to] = v.replace
     const rx = flexibleRegex(from)
-    if (!rx.test(code)) {
+    if (!rx.test(bare)) {
       checks.push({ label: v.label, pass: false, note: `keep the line containing '${from}' from the starter code` })
       continue
     }
-    const res = runCpp(code.replace(rx, to), v.stdin ?? '')
+    const res = runCpp(bare.replace(rx, to), v.stdin ?? '')
     if (res.error) {
       checks.push({ label: v.label, pass: false, note: res.error })
       continue
@@ -80,12 +133,12 @@ export function validate(ch: Challenge, code: string): ValidationResult {
   }
 
   for (const r of ch.require ?? []) {
-    const pass = r.pattern.test(code)
+    const pass = r.pattern.test(bare)
     checks.push({ label: r.label, pass, note: pass ? undefined : r.hint })
   }
 
   for (const f of ch.forbid ?? []) {
-    const pass = !f.pattern.test(code)
+    const pass = !f.pattern.test(bare)
     checks.push({ label: f.label, pass, note: pass ? undefined : f.hint })
   }
 

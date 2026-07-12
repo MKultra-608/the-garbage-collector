@@ -542,6 +542,26 @@ expectError(
   'division by zero',
 )
 
+// --- printf width / flags (real C padding) ---
+expectOut('%5d right-justifies', C + 'int main() { printf("[%5d]", 42); }', '[   42]')
+expectOut('%-5d left-justifies', C + 'int main() { printf("[%-5d]", 42); }', '[42   ]')
+expectOut('%05d zero-pads', C + 'int main() { printf("[%05d]", 42); }', '[00042]')
+expectOut('%05d zero-pads after the sign', C + 'int main() { printf("[%05d]", -42); }', '[-0042]')
+expectOut('%8.2f pads a fixed float', C + 'int main() { printf("[%8.2f]", 3.14159); }', '[    3.14]')
+expectOut('%5s pads text', C + 'int main() { printf("[%5s]", "ab"); }', '[   ab]')
+expectOut('width never truncates', C + 'int main() { printf("[%2d]", 12345); }', '[12345]')
+
+// --- bit shifts at real C precedence; cout chains unaffected ---
+expectOut('left shift', C + 'int main() { printf("%d", 1 << 4); }', '16')
+expectOut('right shift is arithmetic', C + 'int main() { printf("%d %d", 32 >> 2, -8 >> 1); }', '8 -4')
+expectOut('shift binds looser than +', C + 'int main() { printf("%d", 1 << 2 + 1); }', '8')
+expectOut('shift binds tighter than <', C + 'int main() { printf("%d", 16 >> 2 < 5); }', '1')
+expectError('shifting a double errors', C + 'int main() { printf("%d", 1.5 << 2); }', 'integers only')
+expectOut('cout chain still works alongside shifts', H + 'int main() { cout << 1 + 2 << " " << (1 << 3) << endl; }', '3 8\n')
+
+// --- ternary points to if/else ---
+expectError('?: error teaches if/else', C + 'int main() { int x = 1 ? 2 : 3; }', 'if/else')
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed`)
   process.exit(1)

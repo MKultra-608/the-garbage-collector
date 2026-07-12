@@ -49,6 +49,16 @@ for (const ch of CHALLENGES) {
   }
 }
 
+// ---- comments must never affect grading ----
+// A player note quoting the starter line used to soak up the variant
+// substitution (or satisfy a require) and mis-grade correct code.
+for (const ch of CHALLENGES) {
+  if (!ch.variants?.length) continue
+  const from = ch.variants[0].replace[0]
+  const commented = `// note: the line "${from}" matters\n` + ch.solution
+  check(validate(ch, commented).allPass, `${ch.id}: solution still passes with a comment quoting '${from}'`)
+}
+
 // ---- progression ----
 const gs = newGame()
 check(!isFloorCleared(gs, 'floor0'), 'fresh floor0 is not cleared')
