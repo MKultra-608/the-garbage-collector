@@ -24,6 +24,16 @@ interface Particle {
   color: string
 }
 
+/** Rising, fading damage/heal number over the target it applies to. */
+interface Floater {
+  x: number
+  y: number
+  text: string
+  color: string
+  life: number
+  scale: number
+}
+
 type MenuEntry = { ab: Ability } | { flee: true }
 
 /**
@@ -43,7 +53,9 @@ export class BattleScene implements Scene {
   private charTimer = 0
   private afterMsgs: (() => void) | null = null
   private particles: Particle[] = []
+  private floaters: Floater[] = []
   private enemyFlash = 0
+  private playerFlash = 0
   private bob = 0
   private enemyMoveCount = 0
 
@@ -126,6 +138,7 @@ export class BattleScene implements Scene {
         this.eng.shake = weak ? 5 : 3
         this.enemyFlash = 0.25
         this.burst(160, 55, ab.color, weak ? 22 : 14)
+        this.floaters.push({ x: VIEW_W / 2 - 6, y: 44, text: `-${total}`, color: weak ? PAL.amber : PAL.white, life: 0.9, scale: weak ? 2 : 1 })
         const msgs = [`Wes uses ${ab.name}!`]
         if (hitCount > 1) {
           const word = ab.hitWord ?? 'hit'
@@ -192,7 +205,9 @@ export class BattleScene implements Scene {
       this.gs.player.hp = Math.max(0, this.gs.player.hp - dmg)
       this.eng.audio.hurt()
       this.eng.shake = 4
+      this.playerFlash = 0.3
       this.burst(VIEW_W / 2, VIEW_H - 60, PAL.red, 10)
+      this.floaters.push({ x: VIEW_W - 96, y: 96, text: `-${dmg}`, color: PAL.red, life: 0.9, scale: 1 })
       if (this.gs.player.hp <= 0) after = () => this.lose()
     } else if (move.self === 'atk+') {
       this.enemy.atkBonus++
@@ -249,6 +264,7 @@ export class BattleScene implements Scene {
   update(dt: number): void {
     this.bob = Math.sin(this.eng.time * 2) * 2
     this.enemyFlash = Math.max(0, this.enemyFlash - dt)
+    this.playerFlash = Math.max(0, this.playerFlash - dt)
     for (const p of this.particles) {
       p.x += p.vx * dt
       p.y += p.vy * dt
@@ -256,6 +272,11 @@ export class BattleScene implements Scene {
       p.life -= dt
     }
     this.particles = this.particles.filter((p) => p.life > 0)
+    for (const f of this.floaters) {
+      f.y -= 22 * dt // rise
+      f.life -= dt
+    }
+    this.floaters = this.floaters.filter((f) => f.life > 0)
 
     const inp = this.eng.input
     if (this.phase === 'msg') {
@@ -301,6 +322,16 @@ export class BattleScene implements Scene {
     // arena: dark office at night, single cone of fluorescent light on the enemy
     ctx.fillStyle = PAL.black
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+    // red vignette pulse when Wes takes a hit
+    if (this.playerFlash > 0) {
+      ctx.globalAlpha = Math.min(0.4, this.playerFlash)
+      ctx.fillStyle = PAL.red
+      ctx.fillRect(0, 0, VIEW_W, 4)
+      ctx.fillRect(0, VIEW_H - 4, VIEW_W, 4)
+      ctx.fillRect(0, 0, 4, VIEW_H)
+      ctx.fillRect(VIEW_W - 4, 0, 4, VIEW_H)
+      ctx.globalAlpha = 1
+    }
     ctx.fillStyle = PAL.dark
     ctx.fillRect(0, 96, VIEW_W, VIEW_H - 96)
     ctx.fillStyle = PAL.gray1
@@ -318,6 +349,13 @@ export class BattleScene implements Scene {
     for (const p of this.particles) {
       ctx.fillStyle = p.color
       ctx.fillRect(Math.round(p.x), Math.round(p.y), 2, 2)
+    }
+    // rising damage numbers
+    for (const f of this.floaters) {
+      const a = Math.min(1, f.life * 2)
+      ctx.globalAlpha = a
+      drawText(ctx, f.text, Math.round(f.x), Math.round(f.y), f.color, f.scale)
+      ctx.globalAlpha = 1
     }
 
     // enemy panel
