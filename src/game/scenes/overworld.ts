@@ -349,8 +349,20 @@ export class OverworldScene implements Scene {
     drawables.sort((a, b) => a.y - b.y)
     for (const d of drawables) d.draw()
 
-    // location banner + interact hint
+    // location banner
     drawText(ctx, this.map.name, 6, 4, PAL.gray2)
+
+    // compact HP/RAM HUD so the player can judge when to rest at a cooler
+    const p = this.gs.player
+    const hudX = VIEW_W - 62
+    drawPanel(ctx, hudX, 3, 58, 22, { border: PAL.gray1 })
+    drawText(ctx, `LV${p.lvl}`, hudX + 4, 7, PAL.white)
+    const hpLow = p.hp <= p.maxHp * 0.35
+    drawText(ctx, 'HP', hudX + 4, 15, hpLow ? PAL.red : PAL.gray4)
+    this.hudBar(ctx, hudX + 20, 16, 32, p.hp / p.maxHp, hpLow ? PAL.red : PAL.crt)
+    drawText(ctx, 'MP', hudX + 4, 20, PAL.gray4)
+    this.hudBar(ctx, hudX + 20, 21, 32, p.ram / p.maxRam, PAL.cyan)
+
     const [fx, fy] = this.facingTarget()
     const facingEnt = this.entityAt(fx, fy)
     if (facingEnt && !this.moving) {
@@ -360,10 +372,18 @@ export class OverworldScene implements Scene {
         : facingEnt.kind === 'trash' ? 'CLEAN'
         : facingEnt.kind === 'boss' ? 'CONFRONT'
         : facingEnt.kind === 'elevator' ? 'RIDE'
+        : facingEnt.kind === 'rest' ? 'REST'
         : 'READ'
       const label = `Z:${verb}`
       drawPanel(ctx, VIEW_W - label.length * 6 - 16, VIEW_H - 16, label.length * 6 + 10, 12, { border: PAL.gray2 })
       drawText(ctx, label, VIEW_W - label.length * 6 - 11, VIEW_H - 13, PAL.amber)
     }
+  }
+
+  private hudBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, frac: number, color: string): void {
+    ctx.fillStyle = PAL.gray1
+    ctx.fillRect(x, y, w, 3)
+    ctx.fillStyle = color
+    ctx.fillRect(x, y, Math.round(w * Math.max(0, Math.min(1, frac))), 3)
   }
 }

@@ -58,6 +58,9 @@ export class BattleScene implements Scene {
   private playerFlash = 0
   private bob = 0
   private enemyMoveCount = 0
+  private levelPulse = 0
+  /** Per-floor fluorescent cone colour, so each floor's arena reads distinct. */
+  private tint: string
 
   constructor(
     private eng: Engine,
@@ -67,6 +70,11 @@ export class BattleScene implements Scene {
   ) {
     this.spec = ENEMIES[enemyId]
     this.enemy = { hp: this.spec.hp, atkBonus: 0, guard: false }
+    // Fluorescent-cone colour per floor: boiler amber, mailroom cyan, archive
+    // paper, cubicle CRT-green. Keeps the minimal look but gives each arena an
+    // identity that matches the floor's ambience.
+    const fi = FLOORS.findIndex((f) => f.id === gs.map)
+    this.tint = [PAL.amber, PAL.cyan, PAL.paperDim, PAL.crt][fi] ?? PAL.gray2
     const opener =
       this.spec.boss && this.spec.intro ? this.spec.intro : `A ${this.spec.name} lurches from the pile!`
     this.say([opener], () => this.toMenu())
@@ -222,7 +230,15 @@ export class BattleScene implements Scene {
     const msgs = this.spec.boss
       ? [this.spec.defeat ?? `${this.spec.name} shudders, comes apart, and is finally still.`]
       : [`The ${this.spec.name} collapses into ordinary, well-behaved trash.`]
-    msgs.push(...grantXp(this.gs, this.spec.xp))
+    const xpMsgs = grantXp(this.gs, this.spec.xp)
+    msgs.push(...xpMsgs)
+    if (xpMsgs.some((m) => m.includes('LEVEL UP'))) {
+      // celebratory beat: gold burst over Wes + a rising LEVEL UP tag
+      this.levelPulse = 1.2
+      this.eng.audio.unlockAbility()
+      this.burst(VIEW_W - 66, 104, PAL.amber, 24)
+      this.floaters.push({ x: VIEW_W - 118, y: 90, text: `LEVEL UP! LV${this.gs.player.lvl}`, color: PAL.amber, life: 1.6, scale: 1 })
+    }
     this.gs.player.scrap += this.spec.scrap
     msgs.push(`Collected ${this.spec.scrap} scrap.`)
     if (this.doneFlag) this.gs.flags[this.doneFlag] = true
@@ -265,6 +281,7 @@ export class BattleScene implements Scene {
     this.bob = Math.sin(this.eng.time * 2) * 2
     this.enemyFlash = Math.max(0, this.enemyFlash - dt)
     this.playerFlash = Math.max(0, this.playerFlash - dt)
+    this.levelPulse = Math.max(0, this.levelPulse - dt)
     for (const p of this.particles) {
       p.x += p.vx * dt
       p.y += p.vy * dt
@@ -334,8 +351,18 @@ export class BattleScene implements Scene {
     }
     ctx.fillStyle = PAL.dark
     ctx.fillRect(0, 96, VIEW_W, VIEW_H - 96)
-    ctx.fillStyle = PAL.gray1
-    ctx.fillRect(96, 88, 128, 8) // lit floor strip under the enemy
+    // fluorescent cone in the floor's accent colour (soft, top-down)
+    const cone = ctx.createLinearGradient(0, 0, 0, 96)
+    cone.addColorStop(0, 'rgba(0,0,0,0)')
+    cone.addColorStop(1, this.tint)
+    ctx.globalAlpha = 0.10
+    ctx.fillStyle = cone
+    ctx.fillRect(72, 0, 176, 96)
+    ctx.globalAlpha = 1
+    ctx.fillStyle = this.tint
+    ctx.globalAlpha = 0.5
+    ctx.fillRect(96, 88, 128, 2) // lit floor strip under the enemy
+    ctx.globalAlpha = 1
 
     // enemy
     const ex = VIEW_W / 2 - 36
@@ -364,9 +391,15 @@ export class BattleScene implements Scene {
     this.bar(ctx, 14, 26, 104, this.enemy.hp / this.spec.hp, PAL.red)
     if (this.enemy.guard) drawText(ctx, 'BRACED', 90, 14, PAL.amber)
 
-    // player panel
+    // player panel (gold flash on level up)
     const p = this.gs.player
-    drawPanel(ctx, VIEW_W - 126, 96, 118, 40)
+    drawPanel(ctx, VIEW_W - 126, 96, 118, 40, this.levelPulse > 0 ? { border: PAL.amber } : undefined)
+    if (this.levelPulse > 0 && Math.floor(this.eng.time * 12) % 2 === 0) {
+      ctx.globalAlpha = Math.min(0.5, this.levelPulse)
+      ctx.fillStyle = PAL.amber
+      ctx.fillRect(VIEW_W - 126, 96, 118, 40)
+      ctx.globalAlpha = 1
+    }
     drawText(ctx, `WES  LV${p.lvl}`, VIEW_W - 120, 102, PAL.white)
     if (this.atkStack > 0) drawText(ctx, `ATK+${this.atkStack}`, VIEW_W - 52, 102, PAL.crt)
     drawText(ctx, `HP ${String(p.hp).padStart(2, ' ')}`, VIEW_W - 120, 112, PAL.gray4)

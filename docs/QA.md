@@ -21,10 +21,15 @@ Scores after QA pass 1 (2026-07-11). Weighted avg ~7.6; no category below 7.
 | 9 | Progression rewards | 7 | XP/level/abilities/rest points/ending summary |
 | 10 | Title / pause / ending / meta | 7 | boot log, title, pause, ending card, CLEARED badge |
 
-### Remaining nice-to-haves (next-session backlog, all P2)
+### Pass 2 (done)
+- Per-floor battle backdrop tint (amber/cyan/paper/CRT fluorescent cone).
+- Level-up flourish: gold panel pulse + "LEVEL UP! LVn" floater + burst on level.
+- Overworld HP/RAM/LV HUD (top-right); HP goes red under 35% so you know to rest.
+- "Z:REST" interact hint on coolers.
+- Deep puzzle audit wired into `npm test` (all 19 clean).
+
+### Remaining nice-to-haves (backlog, all P2)
 - Regular-mob combat is still a bit easy with optimal play (2 turns, ~18% HP).
-- Battle backdrop is identical on every floor — a per-floor tint would add variety.
-- No floating "LEVEL UP" flourish (just a log line).
 - Could add a second enemy-type per floor for more variety.
 - Editor: bracket-matching / auto-close would be a nicety (not needed).
 
