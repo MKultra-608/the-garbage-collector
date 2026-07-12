@@ -71,3 +71,8 @@ Scores after QA pass 1 (2026-07-11). Weighted avg ~7.6; no category below 7.
   "line 5" marks exactly the broken line.
 - **Robustness** — interpreter fuzzed with 24 malformed programs: all handled
   gracefully, zero throws/crashes. Save→SAVE→reload→CONTINUE round-trips.
+- **Puzzle audit** — scripts/audit-puzzles.ts checks all 19 challenges for
+  grading bugs (exact output per case, starter fails, reformat still passes, 13
+  alt correct solutions accepted, cheats/hardcodes rejected on logic puzzles).
+  Result: ALL CLEAN. Now part of `npm test`. Confirmed identical 19 puzzle ids
+  in source, desktop dist/, and the live itch bundle — so no version differs.
