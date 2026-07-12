@@ -18,6 +18,8 @@ export type EntityDef =
   | { kind: 'trash'; x: number; y: number; enemy: string; flag: string }
   | { kind: 'boss'; x: number; y: number; enemy: string; flag: string; intro?: string[] }
   | { kind: 'elevator'; x: number; y: number }
+  /** A water cooler / break spot: interact to restore HP and RAM to full. */
+  | { kind: 'rest'; x: number; y: number }
 
 export interface MapDef {
   id: string
@@ -74,9 +76,10 @@ const floor0: MapDef = {
       kind: 'sign',
       x: 10,
       y: 1,
-      text: 'CUSTODIAL NOTICE: Move with ARROWS or WASD. Z inspects, talks, and confirms. X backs out. ENTER opens your kit. Certify at a terminal before touching anything that drips.',
+      text: 'CUSTODIAL NOTICE: Move with ARROWS or WASD. Z inspects, talks, and confirms. X backs out. ENTER opens your kit. Certify at a terminal before touching anything that drips. The break-room cooler tops up your HP and RAM — lean on it between fights.',
     },
     { kind: 'terminal', x: 24, y: 14 },
+    { kind: 'rest', x: 27, y: 2 },
     { kind: 'trash', x: 10, y: 5, enemy: 'crumple', flag: 'f0-trash-1' },
     { kind: 'trash', x: 15, y: 9, enemy: 'crumple', flag: 'f0-trash-2' },
     { kind: 'trash', x: 8, y: 13, enemy: 'lintgolem', flag: 'f0-trash-3' },
@@ -148,6 +151,7 @@ const floor1: MapDef = {
     },
     { kind: 'terminal', x: 12, y: 13 },
     { kind: 'terminal', x: 15, y: 13 },
+    { kind: 'rest', x: 24, y: 4 },
     { kind: 'trash', x: 16, y: 6, enemy: 'shredling', flag: 'f1-trash-1' },
     { kind: 'trash', x: 9, y: 10, enemy: 'junkfax', flag: 'f1-trash-2' },
     { kind: 'trash', x: 21, y: 10, enemy: 'shredling', flag: 'f1-trash-3' },
@@ -214,6 +218,7 @@ const floor2: MapDef = {
     },
     { kind: 'terminal', x: 12, y: 13 },
     { kind: 'terminal', x: 15, y: 13 },
+    { kind: 'rest', x: 22, y: 13 },
     { kind: 'trash', x: 10, y: 4, enemy: 'tallymore', flag: 'f2-trash-1' },
     { kind: 'trash', x: 16, y: 6, enemy: 'rolo', flag: 'f2-trash-2' },
     { kind: 'trash', x: 20, y: 9, enemy: 'tallymore', flag: 'f2-trash-3' },
@@ -281,6 +286,7 @@ const floor3: MapDef = {
     },
     { kind: 'terminal', x: 13, y: 13 },
     { kind: 'terminal', x: 16, y: 13 },
+    { kind: 'rest', x: 21, y: 13 },
     { kind: 'trash', x: 8, y: 3, enemy: 'copypasta', flag: 'f3-trash-1' },
     { kind: 'trash', x: 20, y: 5, enemy: 'scopecreep', flag: 'f3-trash-2' },
     { kind: 'trash', x: 9, y: 10, enemy: 'copypasta', flag: 'f3-trash-3' },

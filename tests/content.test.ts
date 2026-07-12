@@ -44,8 +44,8 @@ for (const map of Object.values(MAPS)) {
       bad++
       continue
     }
-    // trash/npc/boss stand on walkable floor; sign/terminal/elevator live ON solid furniture tiles
-    const wantsSolid = e.kind === 'sign' || e.kind === 'terminal' || e.kind === 'elevator'
+    // trash/npc/boss stand on walkable floor; sign/terminal/elevator/rest live ON solid furniture tiles
+    const wantsSolid = e.kind === 'sign' || e.kind === 'terminal' || e.kind === 'elevator' || e.kind === 'rest'
     if (wantsSolid !== SOLID.has(ch)) {
       console.error(`MAP ${map.id}: ${e.kind} at (${e.x},${e.y}) on '${ch}' — placement looks wrong`)
       bad++

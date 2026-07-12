@@ -13,8 +13,12 @@ export class TitleScene implements Scene {
   private cursor = 0
   private options: string[] = []
 
+  private cleared = false
+
   constructor(private eng: Engine) {
     this.options = hasSave() ? ['CONTINUE', 'NEW GAME'] : ['NEW GAME']
+    // Show a CLEARED badge once the player has finished the whole complex.
+    this.cleared = !!loadGame()?.flags['game-cleared']
   }
 
   update(): void {
@@ -46,6 +50,10 @@ export class TitleScene implements Scene {
     drawTextCentered(ctx, 'GARBAGE COLLECTOR', VIEW_W / 2, 88, PAL.crt, 2)
     drawTextCentered(ctx, 'no one else is coming to clean this up', VIEW_W / 2, 108, PAL.gray3)
 
+    if (this.cleared) {
+      drawTextCentered(ctx, '* COMPLEX 7 CLEAN *', VIEW_W / 2, 118, PAL.amber)
+    }
+
     this.options.forEach((opt, i) => {
       const y = 130 + i * 12
       const sel = i === this.cursor
@@ -54,7 +62,7 @@ export class TitleScene implements Scene {
     })
 
     drawText(ctx, 'Z:OK  X:BACK  ARROWS:MOVE', 8, VIEW_H - 12, PAL.gray2)
-    drawText(ctx, IS_DEMO ? 'DEMO' : 'v0.4', VIEW_W - 34, VIEW_H - 12, IS_DEMO ? PAL.amber : PAL.gray2)
+    drawText(ctx, IS_DEMO ? 'DEMO' : 'v0.2', VIEW_W - 34, VIEW_H - 12, IS_DEMO ? PAL.amber : PAL.gray2)
     ctx.globalAlpha = 1
   }
 }

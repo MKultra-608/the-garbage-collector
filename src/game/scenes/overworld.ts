@@ -7,7 +7,7 @@ import { TILES, TILE } from '../../art/tiles.ts'
 import { JANITOR, PRAM, COURIER, CLERK, TEMP, TRASH_PILE, drawArt } from '../../art/sprites.ts'
 import type { PixelArt } from '../../art/sprites.ts'
 import type { GameState, Facing } from '../state.ts'
-import { MAPS, INTRO_LINES, FLOORS, IS_DEMO, type EntityDef, type MapDef } from '../data/maps.ts'
+import { MAPS, INTRO_LINES, FLOORS, type EntityDef, type MapDef } from '../data/maps.ts'
 import { ENEMIES } from '../data/enemies.ts'
 import { isFloorCleared, tryUnlockNextFloor, nextFloorId } from '../progression.ts'
 import { DialogueScene } from './dialogue.ts'
@@ -187,7 +187,30 @@ export class OverworldScene implements Scene {
         this.eng.audio.confirm()
         this.eng.push(new ElevatorScene(this.eng, this.gs, (floorId) => this.travelTo(floorId)))
         break
+      case 'rest':
+        this.rest()
+        break
     }
+  }
+
+  /** Break-room cooler: restore HP and RAM to full. The game's rest point. */
+  private rest(): void {
+    const p = this.gs.player
+    const already = p.hp >= p.maxHp && p.ram >= p.maxRam
+    if (already) {
+      this.eng.audio.blip()
+      this.eng.push(new DialogueScene(this.eng, [{ who: 'NOTICE', text: 'The cooler gurgles. You are already at full charge. Back to work.' }]))
+      return
+    }
+    p.hp = p.maxHp
+    p.ram = p.maxRam
+    this.eng.audio.unlockAbility()
+    saveGame(this.gs)
+    this.eng.push(
+      new DialogueScene(this.eng, [
+        { who: 'NOTICE', text: 'You lean on the cooler and breathe through the mask. The fluorescent hum steadies. HP and RAM restored to full.' },
+      ]),
+    )
   }
 
   private startBattle(enemy: string, flag?: string): void {
@@ -240,20 +263,28 @@ export class OverworldScene implements Scene {
       )
       return true
     }
-    // Cleared, but nothing built above it yet: one-time slice-complete note.
+    // Final floor cleared: the shift is over. Deliver a real ending, once.
     if (!nextFloorId(this.gs.map) && !this.gs.flags['content-end-msg']) {
       this.gs.flags['content-end-msg'] = true
+      this.gs.flags['game-cleared'] = true // title screen shows a CLEARED badge
       saveGame(this.gs)
+      const p = this.gs.player
+      const powers = this.gs.abilities.filter((id) => id !== 'sweep').length
       this.eng.push(
-        new DialogueScene(this.eng, [
-          { who: 'PRAM', text: `*krzzt* That's every floor I have keys for tonight. Good work down here, kid. Go get some air.` },
-          {
-            who: 'NOTICE',
-            text: IS_DEMO
-              ? 'END OF DEMO — thanks for playing THE GARBAGE COLLECTOR. The full game keeps climbing: the Archives, the cubicles, and whatever is leaking at the top.'
-              : 'END OF THE CURRENT BUILD — Floor 3 (the Cubicle Maze, functions) is next. See docs/ROADMAP.md.',
-          },
-        ]),
+        new DialogueScene(
+          this.eng,
+          [
+            { who: 'PRAM', text: `*krzzt* ...Kid. The board just went dark. Every floor. Green across the whole complex.` },
+            { who: 'PRAM', text: `Twenty years the garbage collector was dead and nobody could read the language to bring it back. You read it. One line at a time.` },
+            { who: 'PRAM', text: `You wrote your way from a mop closet to the corner office: input and output, decisions, loops, arrays, your own functions, records of your own design. That is a real programmer's toolkit, kid.` },
+            { who: 'PRAM', text: `Go home. Take the mask off outside, where the air is clean. You earned the morning.` },
+            {
+              who: 'SHIFT COMPLETE',
+              text: `COMPLEX 7 — CLEAN. Wes reached level ${p.lvl}, wrote ${powers} abilities into being, and certified every terminal from the sub-basement to the cubicles. Thank you for playing THE GARBAGE COLLECTOR.`,
+            },
+          ],
+          () => saveGame(this.gs),
+        ),
       )
       return true
     }
