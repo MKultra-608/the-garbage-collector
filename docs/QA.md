@@ -6,18 +6,27 @@ bug-free indie RPG that a stranger would finish and rate positively.
 
 ## Rubric (each /10; target: no category below 7, weighted average ≥ 7)
 
+Scores after QA pass 1 (2026-07-11). Weighted avg ~7.6; no category below 7.
+
 | # | Category | Score | Notes |
 |---|----------|-------|-------|
-| 1 | No softlocks / crashes / save corruption | ? | most important |
-| 2 | Combat balance (not trivial, not grindy) | ? | needs real number testing |
-| 3 | Game feel / juice (feedback, transitions, SFX) | ? | battle strong; overworld? |
-| 4 | Onboarding & moment-to-moment clarity | ? | does a new player know what to do |
-| 5 | UI/UX polish (menus, HUD, editor, readability) | ? | |
-| 6 | Content variety (enemies, maps, dialogue) | ? | 4 floors / ~12 enemies / 19 puzzles |
-| 7 | Narrative & atmosphere | ? | concept strong |
-| 8 | Educational payload actually lands | ? | strong — real interpreter |
-| 9 | Progression feels rewarding (XP, drops, abilities) | ? | |
-| 10 | Title / pause / ending / meta polish | ? | |
+| 1 | No softlocks / crashes / save corruption | 8 | interp fuzz 24/24 graceful; save/continue round-trips; no console errors |
+| 2 | Combat balance (not trivial, not grindy) | 7 | retuned: sweep-only risky, optimal costs HP, final boss → ~30%. Regular mobs still a touch easy optimally |
+| 3 | Game feel / juice | 7 | battle: shake, particles, flash, damage numbers, hurt vignette, telegraphs. Overworld: walk anim + camera + ambience |
+| 4 | Onboarding & clarity | 8 | intro, sign teaches controls+cooler, teach-before-ask briefs, F1 hints + glossary, error-line marker |
+| 5 | UI/UX polish | 7 | HUD, pause, syntax-highlit editor w/ line nums + error marker, glossary |
+| 6 | Content variety | 7 | 4 floors, 12 enemies, 3 bosses, 19 puzzles, distinct tiles/ambience/enemies per floor |
+| 7 | Narrative & atmosphere | 8 | strong concept, good dialogue, real ending + CLEARED badge |
+| 8 | Educational payload | 9 | real C interpreter, all 11 labs, glossary with etymology + stdio lineage |
+| 9 | Progression rewards | 7 | XP/level/abilities/rest points/ending summary |
+| 10 | Title / pause / ending / meta | 7 | boot log, title, pause, ending card, CLEARED badge |
+
+### Remaining nice-to-haves (next-session backlog, all P2)
+- Regular-mob combat is still a bit easy with optimal play (2 turns, ~18% HP).
+- Battle backdrop is identical on every floor — a per-floor tint would add variety.
+- No floating "LEVEL UP" flourish (just a log line).
+- Could add a second enemy-type per floor for more variety.
+- Editor: bracket-matching / auto-close would be a nicety (not needed).
 
 ## How the loop works
 1. Playtest a slice via the preview + the `__gc` debug API (pump frames; screenshots throttle, so sample canvas / assert state).
@@ -54,3 +63,11 @@ bug-free indie RPG that a stranger would finish and rate positively.
   and the final boss drops you to ~30% even played well. Bosses still require
   ability use (the lesson). Rest points offset the new attrition.
   Was: everything 1-turn / 0 damage.
+- **Battle juice** — rising damage numbers over the target (big amber on a
+  super-effective hit; red over Wes on a hit) + a red screen-edge pulse when
+  hurt. Verified live.
+- **Editor error marker** — a compile error now jumps the cursor to the cited
+  line and paints it red (bar + tint + gutter), cleared on edit. Verified:
+  "line 5" marks exactly the broken line.
+- **Robustness** — interpreter fuzzed with 24 malformed programs: all handled
+  gracefully, zero throws/crashes. Save→SAVE→reload→CONTINUE round-trips.
