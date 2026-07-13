@@ -51,6 +51,25 @@ Scores after QA pass 1 (2026-07-11). Weighted avg ~7.6; no category below 7.
 
 ## FIXED (log)
 
+- **F7 (P0, curriculum integrity)** — the interpreter silently accepted C++
+  iostream (`cout`/`cin`/`endl`), a leftover from a pre-stdio.h era. Because
+  it was another way to produce output, a player could beat 13 of 19
+  challenges with `cout` and never touch the `printf`/`scanf` the labs teach —
+  only the 6 challenges with an explicit `require: /printf/` were shielded.
+  Against HARD RULE 4 (the C taught is real). Fixed: `cout`/`cin`/`endl` now
+  raise a graceful teaching redirect ("this terminal compiles C — print with
+  printf…", rule 7), and printf/scanf gained the whole-array/struct guard that
+  used to live in the removed cout path. Removed dead `coutStmt`/`cinStmt`/
+  `fmt`. Converted the interpreter's ~90 iostream regression tests to their
+  printf/scanf form (coverage preserved) and added redirect tests. NOTE: the
+  C++ `string` type / `.length()` / `std::` tolerance remain (not a bypass —
+  the string/struct challenges require `char[]`); flagged for a follow-up call.
+
+- **F6 (P1, combat exploit)** — retrying an unaffordable ability re-opened the
+  menu through `toMenu()`, which grants +1 RAM every time. A player could sit
+  on a too-expensive move and farm RAM to full with zero enemy turns. Fixed:
+  the "Not enough RAM" path re-opens the menu without the round's regen.
+
 - **F5 (P1, terminal UI)** — the certification terminal drew challenge rows at a
   fixed `y = 54 + i*12` with no scrolling, so Floor 3's SIX exercises spilled
   the sixth row (y=114) on top of the reward line (y=112) — the last exercise

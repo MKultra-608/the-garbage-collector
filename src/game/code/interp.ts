@@ -230,24 +230,6 @@ function asNum(v: Value): number {
   return v.v as number
 }
 
-function fmt(v: Value): string {
-  switch (v.t) {
-    case 'bool':
-      return v.v ? '1' : '0'
-    case 'char':
-      return v.v as string
-    case 'string':
-      return cstr(v)
-    case 'double': {
-      // approximates std::cout default formatting (6 significant digits)
-      const n = v.v as number
-      return Number.isInteger(n) ? String(n) : String(parseFloat(n.toPrecision(6)))
-    }
-    default:
-      return String(v.v)
-  }
-}
-
 // ------------------------------------------------------------------ parser + evaluator (tree-walking, single pass)
 
 const BREAK = Symbol('break')
@@ -589,11 +571,15 @@ class Interp {
           this.expect(';', "continue needs a ';'")
           return CONTINUE
         case 'cout':
-          this.coutStmt()
-          return undefined
+          throw new CppError(
+            "'cout' is C++ — this terminal compiles C. Print with printf, e.g. printf(\"%d\\n\", x);",
+            t.line,
+          )
         case 'cin':
-          this.cinStmt()
-          return undefined
+          throw new CppError(
+            "'cin' is C++ — this terminal compiles C. Read with scanf, e.g. scanf(\"%d\", &x);",
+            t.line,
+          )
       }
       if (t.v === 'const' || TYPE_WORDS.includes(t.v)) {
         this.declStmt()
@@ -1125,6 +1111,9 @@ class Interp {
         throw new CppError(`the format string has more % placeholders than values after the comma`, line)
       }
       const v = args[ai++]
+      if (v.t === 'array' || v.t === 'struct') {
+        throw new CppError(`cannot print a whole ${v.t} — print its ${v.t === 'array' ? 'elements' : 'fields'} one at a time`, line)
+      }
       // spec grammar: [flags][width][.precision][length] — e.g. "-5", "05", ".2", "8.3"
       const sm = spec.match(/^([-0]*)(\d*)(?:\.(\d+))?l*$/)
       const left = !!sm?.[1].includes('-')
@@ -1352,72 +1341,6 @@ class Interp {
     if (fn.ret === 'void') return { t: 'int', v: 0 } // never printed; calls used as statements
     if (rv === undefined) return zeroVal(fn.ret) // fell off the end without return — be gentle
     return this.coerce(rv, fn.ret, line)
-  }
-
-  private coutStmt(): void {
-    this.next() // cout
-    if (this.peek()?.v !== '<<') {
-      throw new CppError("cout prints with '<<', like: cout << \"hi\";", this.lastLine())
-    }
-    while (this.peek()?.v === '<<') {
-      this.next()
-      const t = this.peek()
-      if (t?.t === 'id' && (t.v === 'endl' || t.v === 'flush')) {
-        this.next()
-        if (t.v === 'endl') this.out += '\n'
-        continue
-      }
-      // additive level: the exact operand level C++ gives `<<` chains, so a
-      // bit-shift in normal expressions never collides with stream insertion
-      const val = this.additive()
-      if (val.t === 'array') {
-        throw new CppError('cannot print a whole array — print its elements one at a time', this.lastLine())
-      }
-      if (val.t === 'struct') {
-        throw new CppError('cannot print a whole struct — print its fields one at a time', this.lastLine())
-      }
-      this.out += fmt(val)
-    }
-    this.expect(';', "did you forget the ';' after cout?")
-  }
-
-  private cinStmt(): void {
-    this.next() // cin
-    if (this.peek()?.v !== '>>') {
-      throw new CppError("cin reads with '>>', like: cin >> x;", this.lastLine())
-    }
-    while (this.peek()?.v === '>>') {
-      this.next()
-      const nameTok = this.peek()
-      if (!nameTok || nameTok.t !== 'id') {
-        throw new CppError('cin needs a variable to read into', nameTok?.line ?? this.lastLine())
-      }
-      const tgt = this.tryChainTarget() // handles x, a[i], m[i][j], b.field, s[i]
-      if (!tgt) throw new CppError('cin cannot read into that', nameTok.line)
-      if ('ref' in tgt) {
-        if (tgt.ref.ro) throw new CppError(`'${nameTok.v}' is const — cin cannot overwrite it`, nameTok.line)
-        if (tgt.ref.t === 'array' || tgt.ref.t === 'struct') {
-          throw new CppError(`cin cannot read a whole ${tgt.ref.t} — read one element at a time`, nameTok.line)
-        }
-      }
-      const word = this.nextToken()
-      if (word === undefined) {
-        throw new CppError('the program asked for more input than was provided', nameTok.line)
-      }
-      if ('strOwner' in tgt) {
-        let s = tgt.strOwner.v as string
-        if (tgt.idx >= s.length) s = s.padEnd(tgt.idx, '\0')
-        tgt.strOwner.v = s.slice(0, tgt.idx) + (word[0] ?? '\0') + s.slice(tgt.idx + 1)
-        continue
-      }
-      const target = tgt.ref
-      if (target.t === 'string') target.v = word
-      else if (target.t === 'char') target.v = word[0] ?? '\0'
-      else if (target.t === 'bool') target.v = word !== '0'
-      else if (target.t === 'int') target.v = Math.trunc(parseFloat(word) || 0)
-      else target.v = parseFloat(word) || 0
-    }
-    this.expect(';', "did you forget the ';' after cin?")
   }
 
   // -- expressions (precedence climbing)
@@ -1807,6 +1730,9 @@ class Interp {
     if (t.t === 'id') {
       if (t.v === 'true') return { t: 'bool', v: true }
       if (t.v === 'false') return { t: 'bool', v: false }
+      if (t.v === 'endl' || t.v === 'flush') {
+        throw new CppError(`'${t.v}' is C++ (iostream). In C, print a newline with "\\n", e.g. printf("\\n");`, t.line)
+      }
       if (this.peek()?.v === '(' && ['printf', 'scanf', 'gets', 'puts'].includes(t.v)) {
         // the stdio library's I/O functions — the ones #include <stdio.h> provides
         return this.stdioCall(t.v, t.line)

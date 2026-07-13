@@ -84,8 +84,9 @@ export class BattleScene implements Scene {
     this.afterMsgs = after
   }
 
-  private toMenu(): void {
-    this.gs.player.ram = Math.min(this.gs.player.maxRam, this.gs.player.ram + 1)
+  /** regen=false re-opens the menu without the +1 RAM a new round grants. */
+  private toMenu(regen = true): void {
+    if (regen) this.gs.player.ram = Math.min(this.gs.player.maxRam, this.gs.player.ram + 1)
     this.phase = 'menu'
     this.cursor = 0
   }
@@ -113,7 +114,8 @@ export class BattleScene implements Scene {
     const ab = entry.ab
     if (ab.cost > p.ram) {
       this.eng.audio.error()
-      this.say(['Not enough RAM. It regenerates each round.'], () => this.toMenu())
+      // no regen here — retrying an unaffordable pick must not farm free RAM
+      this.say(['Not enough RAM. It regenerates each round.'], () => this.toMenu(false))
       return
     }
     p.ram -= ab.cost
