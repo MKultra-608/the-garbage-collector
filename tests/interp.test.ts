@@ -59,9 +59,7 @@ expectOut('operator precedence', C + 'int main() { printf("%d", 2 + 3 * 4); }', 
 
 expectOut('parentheses', C + 'int main() { printf("%d", (2 + 3) * 4); }', '20')
 
-expectOut('string variable', C + '#include <string>\nint main() { string crew = "WES"; printf("CREW: %s", crew); }', 'CREW: WES')
-
-expectOut('string concat', C + 'int main() { string a = "gar"; string b = "bage"; printf("%s", a + b); }', 'garbage')
+expectOut('char array variable', C + 'int main() { char crew[8] = "WES"; printf("CREW: %s", crew); }', 'CREW: WES')
 
 expectOut('bool prints as 1/0', C + 'int main() { printf("%d%d", true, false); }', '10')
 
@@ -194,7 +192,7 @@ expectError('infinite loop budget', C + 'int main() { while (1) { int x = 1; } }
 
 expectError('division by zero', C + 'int main() { printf("%d", 1 / 0); }', 'division by zero')
 
-expectError('string plus int rejected', C + 'int main() { string s = "a"; printf("%s", s + 1); }', 'cannot add')
+expectError('char array plus int rejected', C + 'int main() { char s[4] = "a"; printf("%s", s + 1); }', 'cannot add')
 
 expectError('needs more input', C + 'int main() { int x; scanf("%d", &x); }', 'more input')
 
@@ -266,12 +264,6 @@ expectOut(
   '8',
 )
 
-expectOut(
-  'string parameter and return',
-  C + '#include <string>\nstring shout(string s) { return s + "!"; }\nint main() { printf("%s", shout("MOP")); }',
-  'MOP!',
-)
-
 expectError('calling an unknown function', C + 'int main() { printf("%d", mystery(1)); }', 'no function named')
 
 expectError('wrong number of arguments', C + 'int add(int a, int b) { return a + b; }\nint main() { printf("%d", add(1)); }', 'argument')
@@ -319,24 +311,25 @@ expectOut(
 
 expectOut('2d write and read back', C + 'int main() { int m[2][2]; m[1][0] = 42; printf("%d%d", m[1][0], m[0][0]); }', '420')
 
-// ---- strings as sequences (floor 3, Lab 10) ----
+// ---- char arrays as strings (floor 3, Lab 10 — the C way) ----
 
-expectOut('string length()', C + '#include <string>\nint main() { string s = "MOP"; printf("%d", s.length()); }', '3')
-
-expectOut('string size()', C + '#include <string>\nint main() { string s = "CREW"; printf("%d", s.size()); }', '4')
-
-expectOut('string indexing', C + '#include <string>\nint main() { string s = "WES"; printf("%c%c", s[0], s[2]); }', 'WS')
+expectOut('char array indexing', C + 'int main() { char s[8] = "WES"; printf("%c%c", s[0], s[2]); }', 'WS')
 
 expectOut(
-  'count a letter in a string',
+  'count a letter by looping to the null terminator',
   C +
-    '#include <string>\nint main() { string s = "PERISHABLE"; int count = 0; for (int i = 0; i < s.length(); i++) { if (s[i] == \'E\') { count++; } } printf("%d", count); }',
+    'int main() { char s[16] = "PERISHABLE"; int count = 0; for (int i = 0; s[i] != \'\\0\'; i++) { if (s[i] == \'E\') { count++; } } printf("%d", count); }',
   '2',
 )
 
-expectOut('write one character of a string', C + '#include <string>\nint main() { string s = "MOP"; s[0] = \'B\'; printf("%s", s); }', 'BOP')
+expectOut('write one character of a char array', C + 'int main() { char s[8] = "MOP"; s[0] = \'B\'; printf("%s", s); }', 'BOP')
 
-expectError('string index past the end', C + '#include <string>\nint main() { string s = "MOP"; printf("%c", s[9]); }', 'past the end')
+expectError('char array index past the end', C + 'int main() { char s[3] = "hi"; printf("%c", s[9]); }', 'past the end')
+
+// the C++ std::string API is rejected with a nudge toward char[]
+expectError('string type redirects to char[]', C + 'int main() { string s = "MOP"; printf("%s", s); }', 'char array')
+expectError('.length() redirects to a loop', C + 'int main() { char s[8] = "MOP"; printf("%d", s.length()); }', 'C++')
+expectError('string field redirects to char[]', C + 'struct B { string name; };\nint main() { struct B b; printf("x"); }', 'char array')
 
 // ---- structs (floor 3, Lab 11) ----
 

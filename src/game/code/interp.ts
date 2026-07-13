@@ -205,7 +205,11 @@ function cstr(v: Value): string {
   return z === -1 ? s : s.slice(0, z)
 }
 
-const TYPE_WORDS = ['int', 'double', 'float', 'bool', 'char', 'string', 'long']
+// Real C has no `string` type — text is a char array. `t: 'string'` stays the
+// interpreter's INTERNAL representation of char arrays and literals; only the
+// C++ declaration keyword is rejected (with a nudge toward char[]).
+const TYPE_WORDS = ['int', 'double', 'float', 'bool', 'char', 'long']
+const NO_STRING_TYPE = "C has no 'string' type — text is a char array, e.g. char name[30];"
 
 function normType(w: string): CppType {
   if (w === 'float') return 'double'
@@ -332,6 +336,11 @@ class Interp {
     let i = 0
     while (i < n) {
       const t = this.toks[i]
+      // `string` used as a type at the top level (a global, or a function's
+      // return type) — reject the C++ type with a nudge toward char[].
+      if (t.t === 'id' && t.v === 'string' && this.toks[i + 1]?.t === 'id') {
+        throw new CppError(NO_STRING_TYPE, t.line)
+      }
       // struct Name { type field; ... };
       if (t.t === 'id' && t.v === 'struct' && this.toks[i + 1]?.t === 'id' && this.toks[i + 2]?.v === '{') {
         const name = this.toks[i + 1].v
@@ -339,6 +348,9 @@ class Interp {
         let j = i + 3
         while (j < n && this.toks[j].v !== '}') {
           const ft = this.toks[j]
+          if (ft.t === 'id' && ft.v === 'string' && this.toks[j + 1]?.t === 'id') {
+            throw new CppError(NO_STRING_TYPE, ft.line)
+          }
           if (ft.t === 'id' && TYPE_WORDS.includes(ft.v) && this.toks[j + 1]?.t === 'id') {
             let type = normType(ft.v)
             let cap: number | undefined
@@ -384,6 +396,9 @@ class Interp {
             let k = i + 3
             while (k < j) {
               const pt = this.toks[k]
+              if (pt.t === 'id' && pt.v === 'string' && this.toks[k + 1]?.t === 'id') {
+                throw new CppError(NO_STRING_TYPE, pt.line)
+              }
               if (pt.t === 'id' && TYPE_WORDS.includes(pt.v) && this.toks[k + 1]?.t === 'id') {
                 params.push({ type: normType(pt.v), name: this.toks[k + 1].v })
                 k += 2
@@ -1690,10 +1705,11 @@ class Interp {
         const nameTok = this.next()
         if (nameTok.t !== 'id') throw new CppError("'.' needs a member name after it", nameTok.line)
         if (v.t === 'string' && (nameTok.v === 'length' || nameTok.v === 'size')) {
-          this.expect('(', `${nameTok.v} is called with parentheses: .${nameTok.v}()`)
-          this.expect(')')
-          v = { t: 'int', v: (v.v as string).length }
-          continue
+          // C++ std::string method — in C, find the length by looping to '\0'.
+          throw new CppError(
+            `'.${nameTok.v}()' is C++. In C, a char array's length is found by counting up to '\\0'.`,
+            nameTok.line,
+          )
         }
         if (v.t === 'struct') {
           const f = v.fields!.get(nameTok.v)
@@ -1701,7 +1717,7 @@ class Interp {
           v = { ...f, ref: f }
           continue
         }
-        throw new CppError(`'.${nameTok.v}' — only structs have fields (strings have .length() / .size())`, nameTok.line)
+        throw new CppError(`'.${nameTok.v}' — only structs have fields (b.field)`, nameTok.line)
       }
       if (this.opIs('++', '--') && t && v.ref) {
         this.next()
@@ -1732,6 +1748,9 @@ class Interp {
       if (t.v === 'false') return { t: 'bool', v: false }
       if (t.v === 'endl' || t.v === 'flush') {
         throw new CppError(`'${t.v}' is C++ (iostream). In C, print a newline with "\\n", e.g. printf("\\n");`, t.line)
+      }
+      if (t.v === 'string' && this.peek()?.t === 'id') {
+        throw new CppError(NO_STRING_TYPE, t.line)
       }
       if (this.peek()?.v === '(' && ['printf', 'scanf', 'gets', 'puts'].includes(t.v)) {
         // the stdio library's I/O functions — the ones #include <stdio.h> provides

@@ -61,9 +61,20 @@ Scores after QA pass 1 (2026-07-11). Weighted avg ~7.6; no category below 7.
   printf…", rule 7), and printf/scanf gained the whole-array/struct guard that
   used to live in the removed cout path. Removed dead `coutStmt`/`cinStmt`/
   `fmt`. Converted the interpreter's ~90 iostream regression tests to their
-  printf/scanf form (coverage preserved) and added redirect tests. NOTE: the
-  C++ `string` type / `.length()` / `std::` tolerance remain (not a bypass —
-  the string/struct challenges require `char[]`); flagged for a follow-up call.
+  printf/scanf form (coverage preserved) and added redirect tests.
+
+- **F8 (P1, curriculum integrity)** — follow-up to F7: the C++ `string` type /
+  `.length()` / `.size()` were still accepted. Verified this WAS a live bypass:
+  ch3-struct ("PERSONNEL FILE") passed with a `string name;` field instead of
+  the `char name[30]` the lab teaches (ch3-string was already safe — it
+  hard-requires `char[]`). No challenge uses `string`. Removed the C++ `string`
+  declaration keyword and `.length()`/`.size()` methods; every type position
+  (var, global, struct field, function param/return) now redirects to char[]
+  with one consistent message, and `.length()` points to the loop-to-`'\0'`
+  idiom. The internal `t:'string'` representation of char arrays/literals is
+  untouched, so real-C string handling (indexing, writes, `%s`, `scanf %s`)
+  still works. Converted the char-array-compatible tests, dropped the
+  C++-only ones (concat, string param/return), and added redirect tests.
 
 - **F6 (P1, combat exploit)** — retrying an unaffordable ability re-opened the
   menu through `toMenu()`, which grants +1 RAM every time. A player could sit
